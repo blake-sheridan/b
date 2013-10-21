@@ -129,6 +129,13 @@ lazyproperty_descr_get(PyObject *self, PyObject *instance, PyObject *owner)
     return value;
 }
 
+static PyObject *
+lazyproperty_descr_set(PyObject *self, PyObject *instance, PyObject *value)
+{
+    PyErr_SetString(PyExc_NotImplementedError, "lazyproperty.__set__");
+    return NULL;
+}
+
 PyDoc_STRVAR(lazyproperty_doc,
 "TODO lazyproperty __doc__");
 
@@ -165,10 +172,10 @@ PyTypeObject LazyPropertyType = {
     lazyproperty_getset,       /* tp_getset */
     0,                         /* tp_base */
     0,                         /* tp_dict */
-    lazyproperty_descr_get,    /* tp_descr_get */
-    0,                         /* tp_descr_set */
+    (descrgetfunc)lazyproperty_descr_get,    /* tp_descr_get */
+    (descrsetfunc)lazyproperty_descr_set,    /* tp_descr_set */
     0,                         /* tp_dictoffset */
     0,                         /* tp_init */
     0,                         /* tp_alloc */
-    lazyproperty_new,          /* tp_new */
+    (newfunc)lazyproperty_new, /* tp_new */
 };
