@@ -10,9 +10,7 @@ setup(
         Extension(
             name = '_lazy',
             sources = [
-                'src/memoizer.c',
-                'src/module.c',
-                'src/property.c',
+                'src/lazy.c',
             ],
         )
     ],
