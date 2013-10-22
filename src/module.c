@@ -1,6 +1,7 @@
 #include <Python.h>
 
 extern PyTypeObject PropertyType;
+extern PyTypeObject MemoizerType;
 
 /* Module */
 
@@ -26,6 +27,13 @@ PyInit__lazy(void)
         Py_INCREF(&PropertyType);
 
         PyModule_AddObject(module, "property", (PyObject *)&PropertyType);
+
+        if (PyType_Ready(&MemoizerType) < 0)
+            return NULL;
+
+        Py_INCREF(&MemoizerType);
+
+        PyModule_AddObject(module, "Memoizer", (PyObject *)&MemoizerType);
     }
 
     return module;
