@@ -111,6 +111,11 @@ Table_getitem(Table *this, PyObject *key)
     if (entry->key == key) {
         value = entry->value;
     } else {
+        if (entry->key != NULL) {
+            PyErr_SetString(PyExc_NotImplementedError, "resize");
+            return NULL;
+        }
+
         value = PyObject_CallFunctionObjArgs(this->function, key, NULL);
         if (value == NULL) {
             return NULL;
