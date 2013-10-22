@@ -153,6 +153,50 @@ Table_getitem(Table *this, PyObject *key)
     return value;
 }
 
+static int
+Table_delitem(Table *this, PyObject *key)
+{
+
+    register Entry (*entries)[] = this->entries;
+    register Entry *entry;
+    register size_t i;
+    register size_t size = this->size;
+
+    if (entries == NULL) {
+        return -1;
+    }
+
+    i = (size_t)key % size;
+
+    while (1) {
+        entry = &(*entries)[i];
+
+        if (entry->key == key) {
+            Py_DECREF(entry->value);
+
+            entry->key = NULL;
+            entry->value = NULL;
+
+            this->used--;
+
+            return 0;
+        }
+
+        if (entry->key == NULL) {
+            return -1;
+        }
+
+        if (i == size) {
+            i = 0;
+        } else {
+            i++;
+        }
+    }
+
+    assert(0);
+    return -1;
+}
+
 /* Memoizer */
 
 static PyObject *
@@ -195,8 +239,12 @@ Memoizer_subscript(PyObject *self, PyObject *key)
 static int
 Memoizer_ass_subscript(PyObject *self, PyObject *key, PyObject *value)
 {
-    PyErr_SetString(PyExc_NotImplementedError, "Memoizer.__setitem__");
-    return -1;
+    if (value == NULL) {
+        return Table_delitem(((Memoizer*)self)->table, key);
+    } else {
+        PyErr_SetString(PyExc_NotImplementedError, "Memoizer.__setitem__");
+        return -1;
+    }
 }
 
 static PyMappingMethods Memoizer_as_mapping = {
