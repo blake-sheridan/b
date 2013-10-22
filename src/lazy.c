@@ -13,6 +13,7 @@ typedef struct {
     PyObject *function;
     Entry (*entries)[];
     Py_ssize_t size;
+    Py_ssize_t used;
 } Table;
 
 typedef struct {
@@ -54,6 +55,7 @@ Table_new(PyObject *args, PyObject **kwargs)
     this->function = function;
     this->entries = NULL;
     this->size = 0;
+    this->used = 0;
 
     return this;
 }
@@ -89,6 +91,7 @@ Table_getitem(Table *this, PyObject *key)
     register Entry (*entries)[] = this->entries;
     register Entry *entry;
     register size_t i;
+    register size_t size;
     PyObject *value;
 
     if (entries == NULL) {
@@ -99,30 +102,50 @@ Table_getitem(Table *this, PyObject *key)
             return NULL;
         }
 
-        this->size = INITIAL_SIZE;
+        size = this->size = INITIAL_SIZE;
 
-        for (i = 0; i < this->size; i++) {
+        for (i = 0; i < size; i++) {
             (*entries)[i].key = NULL;
         }
+    } else {
+        size = this->size;
     }
 
-    entry = &(*entries)[(size_t)key % (this->size)];
+    i = (size_t)key % size;
 
-    if (entry->key == key) {
-        value = entry->value;
-    } else {
-        if (entry->key != NULL) {
-            PyErr_SetString(PyExc_NotImplementedError, "resize");
+    register int collision_count = 0;
+
+    while (1) {
+        entry = &(*entries)[i];
+
+        if (entry->key == key) {
+            value = entry->value;
+            break;
+        }
+
+        if (entry->key == NULL) {
+            entry->value = value = PyObject_CallFunctionObjArgs(this->function, key, NULL);
+            if (value == NULL) {
+                return NULL;
+            }
+
+            this->used++;
+
+            entry->key = key;
+
+            break;
+        }
+
+        if (collision_count++ > 5) {
+            PyErr_SetString(PyExc_NotImplementedError, "Table resize");
             return NULL;
         }
 
-        value = PyObject_CallFunctionObjArgs(this->function, key, NULL);
-        if (value == NULL) {
-            return NULL;
+        if (i == size) {
+            i = 0;
+        } else {
+            i++;
         }
-
-        entry->key = key;
-        entry->value = value;
     }
 
     Py_INCREF(value);
@@ -160,8 +183,7 @@ Memoizer_dealloc(PyObject *self)
 static Py_ssize_t
 Memoizer_length(PyObject *self)
 {
-    PyErr_SetString(PyExc_NotImplementedError, "Memoizer.__len__");
-    return -1;
+    return ((Memoizer*)self)->table->used;
 }
 
 static PyObject *
