@@ -1,6 +1,6 @@
 #include <Python.h>
 
-extern PyTypeObject LazyPropertyType;
+extern PyTypeObject PropertyType;
 
 /* Module */
 
@@ -20,12 +20,12 @@ PyInit__lazy(void)
     PyObject *module = PyModule_Create(&Module);
 
     if (module != NULL) {
-        if (PyType_Ready(&LazyPropertyType) < 0)
+        if (PyType_Ready(&PropertyType) < 0)
             return NULL;
 
-        Py_INCREF(&LazyPropertyType);
+        Py_INCREF(&PropertyType);
 
-        PyModule_AddObject(module, "property", (PyObject *)&LazyPropertyType);
+        PyModule_AddObject(module, "property", (PyObject *)&PropertyType);
     }
 
     return module;

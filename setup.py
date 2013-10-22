@@ -11,7 +11,7 @@ setup(
             name = '_lazy',
             sources = [
                 'src/module.c',
-                'src/lazyproperty.c',
+                'src/property.c',
             ],
         )
     ],

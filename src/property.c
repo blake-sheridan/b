@@ -13,17 +13,17 @@ typedef struct {
     PyObject_HEAD
     PyObject *function;
     Entry (*entries)[];
-} LazyProperty;
+} Property;
 
 static PyObject *
-lazyproperty_new(PyTypeObject *type, PyObject *args, PyObject **kwargs)
+property_new(PyTypeObject *type, PyObject *args, PyObject **kwargs)
 {
     PyObject *self;
     PyObject *function;
 
     if (PyTuple_GET_SIZE(args) != 1) {
         PyErr_SetString(PyExc_TypeError,
-                       "type 'lazyproperty' takes a single argument");
+                       "type 'lazy.property' takes a single argument");
         return NULL;
     }
 
@@ -39,7 +39,7 @@ lazyproperty_new(PyTypeObject *type, PyObject *args, PyObject **kwargs)
         return NULL;
     }
 
-    LazyProperty *lp = (LazyProperty *)self;
+    Property *lp = (Property *)self;
 
     lp->function = function;
     Py_INCREF(function);
@@ -50,9 +50,9 @@ lazyproperty_new(PyTypeObject *type, PyObject *args, PyObject **kwargs)
 }
 
 static void
-lazyproperty_dealloc(PyObject *self)
+property_dealloc(PyObject *self)
 {
-    LazyProperty *lp = (LazyProperty *)self;
+    Property *lp = (Property *)self;
 
     Py_XDECREF(lp->function);
 
@@ -65,39 +65,39 @@ lazyproperty_dealloc(PyObject *self)
 }
 
 static PyObject *
-lazyproperty_get_doc(LazyProperty *lp)
+property_get_doc(Property *lp)
 {
     return PyObject_GetAttrString(lp->function, "__doc__");
 }
 
 static PyObject *
-lazyproperty_get_name(LazyProperty *lp)
+property_get_name(Property *lp)
 {
     return PyObject_GetAttrString(lp->function, "__name__");
 }
 
 static PyObject *
-lazyproperty_get_qualname(LazyProperty *lp)
+property_get_qualname(Property *lp)
 {
     return PyObject_GetAttrString(lp->function, "__qualname__");
 }
 
-static PyGetSetDef lazyproperty_getset[] = {
-    {"__doc__",      (getter)lazyproperty_get_doc},
-    {"__name__",     (getter)lazyproperty_get_name},
-    {"__qualname__", (getter)lazyproperty_get_qualname},
+static PyGetSetDef property_getset[] = {
+    {"__doc__",      (getter)property_get_doc},
+    {"__name__",     (getter)property_get_name},
+    {"__qualname__", (getter)property_get_qualname},
     {0}
 };
 
 static PyObject *
-lazyproperty_descr_get(PyObject *self, PyObject *instance, PyObject *owner)
+property_descr_get(PyObject *self, PyObject *instance, PyObject *owner)
 {
     if (instance == Py_None || instance == NULL) {
         Py_INCREF(self);
         return self;
     }
 
-    LazyProperty *lp = (LazyProperty *)self;
+    Property *lp = (Property *)self;
 
     if (lp->entries == NULL) {
         lp->entries = PyMem_Malloc(ENTRIES_SIZE * sizeof(Entry));
@@ -130,21 +130,21 @@ lazyproperty_descr_get(PyObject *self, PyObject *instance, PyObject *owner)
 }
 
 static PyObject *
-lazyproperty_descr_set(PyObject *self, PyObject *instance, PyObject *value)
+property_descr_set(PyObject *self, PyObject *instance, PyObject *value)
 {
-    PyErr_SetString(PyExc_NotImplementedError, "lazyproperty.__set__");
+    PyErr_SetString(PyExc_NotImplementedError, "property.__set__");
     return NULL;
 }
 
-PyDoc_STRVAR(lazyproperty_doc,
-"TODO lazyproperty __doc__");
+PyDoc_STRVAR(property_doc,
+"TODO property __doc__");
 
-PyTypeObject LazyPropertyType = {
+PyTypeObject PropertyType = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    "lazyproperty",            /* tp_name */
-    sizeof(LazyProperty),      /* tp_basicsize */
+    "property",                /* tp_name */
+    sizeof(Property),          /* tp_basicsize */
     0,                         /* tp_itemsize */
-    (destructor)lazyproperty_dealloc,   /* tp_dealloc */
+    (destructor)property_dealloc,   /* tp_dealloc */
     0,                         /* tp_print */
     0,                         /* tp_getattr */
     0,                         /* tp_setattr */
@@ -160,7 +160,7 @@ PyTypeObject LazyPropertyType = {
     0,                         /* tp_setattro */
     0,                         /* tp_as_buffer */
     Py_TPFLAGS_DEFAULT,        /* tp_flags */
-    lazyproperty_doc,          /* tp_doc */
+    property_doc,              /* tp_doc */
     0,                         /* tp_traverse */
     0,                         /* tp_clear */
     0,                         /* tp_richcompare */
@@ -169,13 +169,13 @@ PyTypeObject LazyPropertyType = {
     0,                         /* tp_iternext */
     0,                         /* tp_methods */
     0,                         /* tp_members */
-    lazyproperty_getset,       /* tp_getset */
+    property_getset,           /* tp_getset */
     0,                         /* tp_base */
     0,                         /* tp_dict */
-    (descrgetfunc)lazyproperty_descr_get,    /* tp_descr_get */
-    (descrsetfunc)lazyproperty_descr_set,    /* tp_descr_set */
+    (descrgetfunc)property_descr_get,    /* tp_descr_get */
+    (descrsetfunc)property_descr_set,    /* tp_descr_set */
     0,                         /* tp_dictoffset */
     0,                         /* tp_init */
     0,                         /* tp_alloc */
-    (newfunc)lazyproperty_new, /* tp_new */
+    (newfunc)property_new,     /* tp_new */
 };
