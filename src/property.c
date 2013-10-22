@@ -39,12 +39,12 @@ property_new(PyTypeObject *type, PyObject *args, PyObject **kwargs)
         return NULL;
     }
 
-    Property *lp = (Property *)self;
-
-    lp->function = function;
     Py_INCREF(function);
 
-    lp->entries = NULL;
+    Property *this = (Property*)self;
+
+    this->function = function;
+    this->entries = NULL;
 
     return self;
 }
@@ -52,34 +52,34 @@ property_new(PyTypeObject *type, PyObject *args, PyObject **kwargs)
 static void
 property_dealloc(PyObject *self)
 {
-    Property *lp = (Property *)self;
+    Property *this = (Property*)self;
 
-    Py_XDECREF(lp->function);
+    Py_XDECREF(this->function);
 
-    if (lp->entries != NULL) {
-        PyMem_Free(lp->entries);
-        lp->entries = NULL;
+    if (this->entries != NULL) {
+        PyMem_Free(this->entries);
+        this->entries = NULL;
     }
 
     self->ob_type->tp_free(self);
 }
 
 static PyObject *
-property_get_doc(Property *lp)
+property_get_doc(PyObject *self)
 {
-    return PyObject_GetAttrString(lp->function, "__doc__");
+    return PyObject_GetAttrString(((Property*)self)->function, "__doc__");
 }
 
 static PyObject *
-property_get_name(Property *lp)
+property_get_name(PyObject *self)
 {
-    return PyObject_GetAttrString(lp->function, "__name__");
+    return PyObject_GetAttrString(((Property*)self)->function, "__name__");
 }
 
 static PyObject *
-property_get_qualname(Property *lp)
+property_get_qualname(PyObject *self)
 {
-    return PyObject_GetAttrString(lp->function, "__qualname__");
+    return PyObject_GetAttrString(((Property*)self)->function, "__qualname__");
 }
 
 static PyGetSetDef property_getset[] = {
@@ -97,31 +97,31 @@ property_descr_get(PyObject *self, PyObject *instance, PyObject *owner)
         return self;
     }
 
-    Property *lp = (Property *)self;
+    Property *this = (Property *)self;
 
-    if (lp->entries == NULL) {
-        lp->entries = PyMem_Malloc(ENTRIES_SIZE * sizeof(Entry));
+    if (this->entries == NULL) {
+        this->entries = PyMem_Malloc(ENTRIES_SIZE * sizeof(Entry));
 
-        if (lp->entries == NULL) {
+        if (this->entries == NULL) {
             PyErr_NoMemory();
             return NULL;
         }
     }
 
     long index = (long)instance % ENTRIES_SIZE;
-    Entry entry = (*lp->entries)[index];
+    Entry entry = (*this->entries)[index];
     PyObject *value;
 
     if (entry.instance == instance) {
         value = entry.value;
     } else {
-        value = PyObject_CallFunctionObjArgs(lp->function, instance, NULL);
+        value = PyObject_CallFunctionObjArgs(this->function, instance, NULL);
         if (value == NULL) {
             return NULL;
         }
 
-        (*lp->entries)[index].instance = instance;
-        (*lp->entries)[index].value = value;
+        (*this->entries)[index].instance = instance;
+        (*this->entries)[index].value = value;
     }
 
     Py_INCREF(value);
