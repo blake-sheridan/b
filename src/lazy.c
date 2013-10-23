@@ -1,8 +1,7 @@
 #include <Python.h>
 
-#include <Python.h>
-
 #define INITIAL_SIZE 128
+#define PERTURB_SHIFT 5
 
 typedef struct {
     PyObject *key;
@@ -11,9 +10,10 @@ typedef struct {
 
 typedef struct {
     PyObject *function;
-    Entry (*entries)[];
     Py_ssize_t size;
+    Py_ssize_t usable;
     Py_ssize_t used;
+    Entry entries[1];
 } Table;
 
 typedef struct {
@@ -32,6 +32,7 @@ static Table *
 Table_new(PyObject *args, PyObject **kwargs)
 {
     PyObject *function;
+    Py_ssize_t size = INITIAL_SIZE;
 
     if (!PyArg_ParseTuple(args, "O", &function)) {
         return NULL;
@@ -44,17 +45,25 @@ Table_new(PyObject *args, PyObject **kwargs)
         return NULL;
     }
 
-    Table *this = PyMem_Malloc(sizeof(Table));
+    Table *this = PyMem_Malloc(sizeof(Table) +
+                               sizeof(Entry) * (size-1));
     if (this == NULL) {
         PyErr_NoMemory();
         return NULL;
     }
 
+    Entry *ep0 = &this->entries[0];
+    Py_ssize_t i;
+    for (i = 0; i < size; i++) {
+        ep0[i].key = NULL;
+        ep0[i].value = NULL;
+    }
+
     Py_INCREF(function);
 
     this->function = function;
-    this->entries = NULL;
-    this->size = 0;
+    this->size = size;
+    this->usable = (((size << 1)+1)/3);
     this->used = 0;
 
     return this;
@@ -65,28 +74,22 @@ Table_free(Table *this)
 {
     Py_XDECREF(this->function);
 
-    if (this->size != 0) {
-        register Entry (*entries)[] = this->entries;
-        register Entry *entry;
-        register size_t i;
-
-
-        for (i = 0; i < this->size; i++) {
-            entry = &(*entries)[i];
-
-            if (entry->key != NULL) {
-                Py_XDECREF(entry->value);
-            }
-        }
-
-        PyMem_Free(this->entries);
+    Entry *entries = &this->entries[0];
+    Py_ssize_t i, n;
+    for (i = 0, n = this->size; i < n; i++) {
+        Py_XDECREF(entries[i].key);
+        Py_XDECREF(entries[i].value);
     }
 
-    PyMem_Free(this);
+    PyMem_FREE(this);
 }
 
 static int
 Table_resize(Table *this) {
+    PyErr_SetString(PyExc_NotImplementedError, "resize");
+    return -1;
+
+/*
     Py_ssize_t old_size = this->size;
     Py_ssize_t new_size = old_size * 2;
 
@@ -137,119 +140,114 @@ Table_resize(Table *this) {
     PyMem_Free(old_entries);
 
     return 0;
+*/
 }
 
-static PyObject *
+static inline PyObject *
 Table_getitem(Table *this, PyObject *key)
 {
-    register Entry (*entries)[] = this->entries;
-    register Entry *entry;
     register size_t i;
-    register size_t size;
-    PyObject *value;
+    register size_t perturb;
+    register size_t mask;
+    Entry *ep0;
+    register Entry *ep;
 
-    if (entries == NULL) {
-        entries = this->entries = PyMem_Malloc(INITIAL_SIZE * sizeof(Entry));
+    Py_hash_t hash = (Py_hash_t)key;
 
-        if (entries == NULL) {
-            PyErr_NoMemory();
+    mask = this->size - 1;
+
+    ep0 = &this->entries[0];
+
+    i = (size_t)hash & mask;
+
+    ep = &ep0[i];
+
+    if (ep->key == key)
+        goto found;
+
+    if (ep->key == NULL)
+        goto missing;
+
+    for (perturb = hash; ; perturb >>= PERTURB_SHIFT) {
+        i = (i << 2) + i + perturb + 1;
+
+        ep = &ep0[i & mask];
+
+        if (ep->key == key)
+            goto found;
+
+        if (ep->key == NULL)
+            goto missing;
+    }
+
+  missing:
+    ep->value = PyObject_CallFunctionObjArgs(this->function, key, NULL);
+
+    if (ep->value == NULL)
+        return NULL;
+
+    ep->key = key;
+
+    this->used++;
+
+    if (this->usable-- <= 0) {
+        if (Table_resize(this) == -1)
             return NULL;
-        }
-
-        size = this->size = INITIAL_SIZE;
-
-        for (i = 0; i < size; i++) {
-            (*entries)[i].key = NULL;
-        }
-    } else {
-        size = this->size;
     }
 
-    i = (size_t)key % size;
-
-    register int collision_count = 0;
-
-    while (1) {
-        entry = &(*entries)[i];
-
-        if (entry->key == key) {
-            value = entry->value;
-            break;
-        }
-
-        if (entry->key == NULL) {
-            entry->value = value = PyObject_CallFunctionObjArgs(this->function, key, NULL);
-            if (value == NULL) {
-                return NULL;
-            }
-
-            this->used++;
-
-            entry->key = key;
-
-            break;
-        }
-
-        if (collision_count++ > 5) {
-            if (Table_resize(this) == -1) {
-                return NULL;
-            }
-        }
-
-        if (i == size) {
-            i = 0;
-        } else {
-            i++;
-        }
-    }
-
-    Py_INCREF(value);
-
-    return value;
+  found:
+    Py_INCREF(ep->value);
+    return ep->value;
 }
 
 static int
 Table_delitem(Table *this, PyObject *key)
 {
-
-    register Entry (*entries)[] = this->entries;
-    register Entry *entry;
     register size_t i;
-    register size_t size = this->size;
+    register size_t perturb;
+    register size_t mask;
+    Entry *ep0;
+    register Entry *ep;
 
-    if (entries == NULL) {
-        return -1;
+    Py_hash_t hash = (Py_hash_t)key;
+
+    mask = this->size - 1;
+
+    ep0 = &this->entries[0];
+
+    i = (size_t)hash & mask;
+
+    ep = &ep0[i];
+
+    if (ep->key == key)
+        goto found;
+
+    if (ep->key == NULL)
+        goto missing;
+
+    for (perturb = hash; ; perturb >>= PERTURB_SHIFT) {
+        i = (i << 2) + i + perturb + 1;
+
+        ep = &ep0[i & mask];
+
+        if (ep->key == key)
+            goto found;
+
+        if (ep->key == NULL)
+            goto missing;
     }
 
-    i = (size_t)key % size;
-
-    while (1) {
-        entry = &(*entries)[i];
-
-        if (entry->key == key) {
-            Py_DECREF(entry->value);
-
-            entry->key = NULL;
-            entry->value = NULL;
-
-            this->used--;
-
-            return 0;
-        }
-
-        if (entry->key == NULL) {
-            return -1;
-        }
-
-        if (i == size) {
-            i = 0;
-        } else {
-            i++;
-        }
-    }
-
-    assert(0);
+  missing:
     return -1;
+  found:
+    Py_DECREF(ep->value);
+
+    ep->key = NULL;
+    ep->value = NULL;
+
+    this->used--;
+
+    return 0;
 }
 
 /* Memoizer */
