@@ -144,7 +144,7 @@ Table_resize(Table *this) {
 }
 
 static inline PyObject *
-Table_getitem(Table *this, PyObject *key)
+Table_get(Table *this, PyObject *key)
 {
     PyObject *value;
 
@@ -208,7 +208,7 @@ Table_getitem(Table *this, PyObject *key)
 }
 
 static int
-Table_delitem(Table *this, PyObject *key)
+Table_set(Table *this, PyObject *key, PyObject *value)
 {
     register size_t i;
     register size_t perturb;
@@ -245,14 +245,35 @@ Table_delitem(Table *this, PyObject *key)
     }
 
   missing:
-    return -1;
-  found:
-    Py_DECREF(ep->value);
+    if (value == NULL)
+        return -1;
 
     ep->key = NULL;
     ep->value = NULL;
 
-    this->used--;
+    this->used++;
+
+    if (this->usable-- <= 0)
+        if (Table_resize(this) == -1)
+            return -1;
+
+    Py_INCREF(value);
+
+    return 0;
+
+  found:
+    Py_DECREF(ep->value);
+
+    if (value == NULL) {
+        ep->key = NULL;
+        ep->value = NULL;
+
+        this->used--;
+    } else {
+        ep->value = value;
+
+        Py_INCREF(value);
+    }
 
     return 0;
 }
@@ -293,18 +314,13 @@ Memoizer_length(PyObject *self)
 static PyObject *
 Memoizer_subscript(PyObject *self, PyObject *key)
 {
-    return Table_getitem(((Memoizer*)self)->table, key);
+    return Table_get(((Memoizer*)self)->table, key);
 }
 
 static int
 Memoizer_ass_subscript(PyObject *self, PyObject *key, PyObject *value)
 {
-    if (value == NULL) {
-        return Table_delitem(((Memoizer*)self)->table, key);
-    } else {
-        PyErr_SetString(PyExc_NotImplementedError, "Memoizer.__setitem__");
-        return -1;
-    }
+    return Table_set(((Memoizer*)self)->table, key, value);
 }
 
 static PyMappingMethods Memoizer_as_mapping = {
@@ -417,18 +433,13 @@ property_get(PyObject *self, PyObject *instance, PyObject *owner)
         return self;
     }
 
-    return Table_getitem(((Property*)self)->table, instance);
+    return Table_get(((Property*)self)->table, instance);
 }
 
 static int
 property_set(PyObject *self, PyObject *instance, PyObject *value)
 {
-    if (value == NULL) {
-        return Table_delitem(((Property*)self)->table, instance);
-    } else {
-        PyErr_SetString(PyExc_NotImplementedError, "__set__");
-        return -1;
-    }
+    return Table_set(((Property*)self)->table, instance, value);
 }
 
 PyDoc_STRVAR(property_doc,

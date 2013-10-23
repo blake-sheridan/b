@@ -80,6 +80,19 @@ class MemoizerTests(unittest.TestCase):
 
         self.assertEqual(len(m), 2)
 
+    def test_setitem(self):
+        # Though I'm up the air as to allowing this
+        def plus_two(x):
+            return x + 2
+
+        m = lazy.Memoizer(plus_two)
+
+        self.assertEqual(m[2], 4)
+
+        m[2] = 5
+
+        self.assertEqual(m[2], 5)
+
     def test_resize(self):
         def plus_two(x):
             return x + 2
