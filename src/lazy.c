@@ -403,7 +403,7 @@ static PyGetSetDef property_getset[] = {
 };
 
 static PyObject *
-property_descr_get(PyObject *self, PyObject *instance, PyObject *owner)
+property_get(PyObject *self, PyObject *instance, PyObject *owner)
 {
     if (instance == Py_None || instance == NULL) {
         Py_INCREF(self);
@@ -413,8 +413,8 @@ property_descr_get(PyObject *self, PyObject *instance, PyObject *owner)
     return Table_getitem(((Property*)self)->table, instance);
 }
 
-static PyObject *
-property_descr_set(PyObject *self, PyObject *instance, PyObject *value)
+static int
+property_set(PyObject *self, PyObject *instance, PyObject *value)
 {
     if (value == NULL) {
         return Table_delitem(((Property*)self)->table, instance);
@@ -460,8 +460,8 @@ PyTypeObject PropertyType = {
     property_getset,           /* tp_getset */
     0,                         /* tp_base */
     0,                         /* tp_dict */
-    (descrgetfunc)property_descr_get,    /* tp_descr_get */
-    (descrsetfunc)property_descr_set,    /* tp_descr_set */
+    (descrgetfunc)property_get,/* tp_descr_get */
+    (descrsetfunc)property_set,/* tp_descr_set */
     0,                         /* tp_dictoffset */
     0,                         /* tp_init */
     0,                         /* tp_alloc */
