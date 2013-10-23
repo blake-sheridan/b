@@ -3,6 +3,8 @@
 #define INITIAL_SIZE 128
 #define PERTURB_SHIFT 5
 
+#define USABLE(size) ((((size) << 1) + 1) / 3)
+
 typedef struct {
     PyObject *key;
     PyObject *value;
@@ -12,7 +14,6 @@ typedef struct {
     PyObject *function;
     Py_ssize_t size;
     Py_ssize_t usable;
-    Py_ssize_t used;
     Entry entries[1];
 } Table;
 
@@ -63,8 +64,7 @@ Table_new(PyObject *args, PyObject **kwargs)
 
     this->function = function;
     this->size = size;
-    this->usable = (((size << 1)+1)/3);
-    this->used = 0;
+    this->usable = USABLE(size);
 
     return this;
 }
@@ -88,7 +88,6 @@ static int
 Table_resize(Table *this) {
     PyErr_SetString(PyExc_NotImplementedError, "resize");
     return -1;
-
 /*
     Py_ssize_t old_size = this->size;
     Py_ssize_t new_size = old_size * 2;
@@ -196,8 +195,6 @@ Table_get(Table *this, PyObject *key)
     ep->key = key;
     ep->value = value;
 
-    this->used++;
-
     if (this->usable-- <= 0)
         if (Table_resize(this) == -1)
             return NULL;
@@ -251,8 +248,6 @@ Table_set(Table *this, PyObject *key, PyObject *value)
     ep->key = NULL;
     ep->value = NULL;
 
-    this->used++;
-
     if (this->usable-- <= 0)
         if (Table_resize(this) == -1)
             return -1;
@@ -268,7 +263,7 @@ Table_set(Table *this, PyObject *key, PyObject *value)
         ep->key = NULL;
         ep->value = NULL;
 
-        this->used--;
+        this->usable++;
     } else {
         ep->value = value;
 
@@ -276,6 +271,11 @@ Table_set(Table *this, PyObject *key, PyObject *value)
     }
 
     return 0;
+}
+
+static inline int
+Table_used(Table *this) {
+    return USABLE(this->size) - this->usable;
 }
 
 /* Memoizer */
@@ -308,7 +308,7 @@ Memoizer_dealloc(PyObject *self)
 static Py_ssize_t
 Memoizer_length(PyObject *self)
 {
-    return ((Memoizer*)self)->table->used;
+    return Table_used(((Memoizer*)self)->table);
 }
 
 static PyObject *
