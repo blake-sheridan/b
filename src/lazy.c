@@ -146,10 +146,12 @@ Table_resize(Table *this) {
 static inline PyObject *
 Table_getitem(Table *this, PyObject *key)
 {
+    PyObject *value;
+
     register size_t i;
     register size_t perturb;
     register size_t mask;
-    Entry *ep0;
+    Entry *ep0; // register-ing this slows by 33%
     register Entry *ep;
 
     Py_hash_t hash = (Py_hash_t)key;
@@ -162,8 +164,11 @@ Table_getitem(Table *this, PyObject *key)
 
     ep = &ep0[i];
 
-    if (ep->key == key)
-        goto found;
+    if (ep->key == key) {
+        value = ep->value;
+        Py_INCREF(value);
+        return value;
+    }
 
     if (ep->key == NULL)
         goto missing;
@@ -173,31 +178,33 @@ Table_getitem(Table *this, PyObject *key)
 
         ep = &ep0[i & mask];
 
-        if (ep->key == key)
-            goto found;
+        if (ep->key == key) {
+            value = ep->value;
+            Py_INCREF(value);
+            return value;
+        }
 
         if (ep->key == NULL)
             goto missing;
     }
 
   missing:
-    ep->value = PyObject_CallFunctionObjArgs(this->function, key, NULL);
-
-    if (ep->value == NULL)
+    value = PyObject_CallFunctionObjArgs(this->function, key, NULL);
+    if (value == NULL)
         return NULL;
 
     ep->key = key;
+    ep->value = value;
 
     this->used++;
 
-    if (this->usable-- <= 0) {
+    if (this->usable-- <= 0)
         if (Table_resize(this) == -1)
             return NULL;
-    }
 
-  found:
-    Py_INCREF(ep->value);
-    return ep->value;
+    Py_INCREF(value);
+
+    return value;
 }
 
 static int
