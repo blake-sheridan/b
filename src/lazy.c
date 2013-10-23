@@ -85,6 +85,60 @@ Table_free(Table *this)
     PyMem_Free(this);
 }
 
+static int
+Table_resize(Table *this) {
+    Py_ssize_t old_size = this->size;
+    Py_ssize_t new_size = old_size * 2;
+
+    Entry (*old_entries)[] = this->entries;
+    Entry (*new_entries)[] = PyMem_Malloc(new_size * sizeof(Entry));
+    if (new_entries == NULL) {
+        PyErr_NoMemory();
+        return -1;
+    }
+
+    this->entries = new_entries;
+    this->size = new_size;
+
+    int i;
+
+    for (i = 0; i < new_size; i++) {
+        (*new_entries)[i].key = NULL;
+    }
+
+    PyObject *key;
+    int j;
+    Entry *entry;
+
+    for (i = 0; i < old_size; i++) {
+        key = (*old_entries)[i].key;
+
+        if (key != NULL) {
+            j = (size_t)key % new_size;
+
+            while (1) {
+                entry = &(*new_entries)[j];
+
+                if (entry->key == NULL) {
+                    entry->key = key;
+                    entry->value = (*old_entries)[i].value;
+                    break;
+                }
+
+                if (j == new_size) {
+                    j = 0;
+                } else {
+                    j++;
+                }
+            }
+        }
+    }
+
+    PyMem_Free(old_entries);
+
+    return 0;
+}
+
 static PyObject *
 Table_getitem(Table *this, PyObject *key)
 {
@@ -137,8 +191,9 @@ Table_getitem(Table *this, PyObject *key)
         }
 
         if (collision_count++ > 5) {
-            PyErr_SetString(PyExc_NotImplementedError, "Table resize");
-            return NULL;
+            if (Table_resize(this) == -1) {
+                return NULL;
+            }
         }
 
         if (i == size) {

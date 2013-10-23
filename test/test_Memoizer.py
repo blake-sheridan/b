@@ -2,7 +2,16 @@ import unittest
 
 import lazy
 
-class Memoizer(unittest.TestCase):
+class MemoizerTests(unittest.TestCase):
+    def test_new(self):
+        lazy.Memoizer(str)
+
+        with self.assertRaises(TypeError):
+            lazy.Memoizer("asdf")
+
+        with self.assertRaises(TypeError):
+            lazy.Memoizer(abc=123)
+
     def test_getitem(self):
         count = 0
 
