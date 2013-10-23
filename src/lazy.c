@@ -363,8 +363,12 @@ property_descr_get(PyObject *self, PyObject *instance, PyObject *owner)
 static PyObject *
 property_descr_set(PyObject *self, PyObject *instance, PyObject *value)
 {
-    PyErr_SetString(PyExc_NotImplementedError, "property.__set__");
-    return NULL;
+    if (value == NULL) {
+        return Table_delitem(((Property*)self)->table, instance);
+    } else {
+        PyErr_SetString(PyExc_NotImplementedError, "__set__");
+        return -1;
+    }
 }
 
 PyDoc_STRVAR(property_doc,

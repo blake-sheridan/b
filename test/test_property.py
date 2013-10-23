@@ -27,7 +27,7 @@ class LazyPropertyTests(unittest.TestCase):
     def test_qualname(self):
         self.assertEqual(A.plus_two.__qualname__, 'A.plus_two')
 
-    def test_result(self):
+    def test_get(self):
         a = A(2)
 
         self.assertEqual(a.plus_two, 4)
@@ -39,3 +39,12 @@ class LazyPropertyTests(unittest.TestCase):
 
         self.assertEqual(a._A__private, 4)
         self.assertEqual(a._A__private, 4)
+
+    def test_set(self):
+        a = A(2)
+
+        self.assertEqual(a.plus_two, 4)
+
+        del a.plus_two
+
+        self.assertEqual(a.plus_two, 6)
