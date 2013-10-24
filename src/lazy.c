@@ -31,6 +31,20 @@ typedef struct {
     Cache_HEAD
 } Property;
 
+/* http://burtleburtle.net/bob/hash/integer.html */
+static inline Py_hash_t
+hash_int(void* x)
+{
+    Py_hash_t a = (Py_hash_t)x;
+    a = (a+0x7ed55d16) + (a<<12);
+    a = (a^0xc761c23c) ^ (a>>19);
+    a = (a+0x165667b1) + (a<<5);
+    a = (a+0xd3a2646c) ^ (a<<9);
+    a = (a+0xfd7046c5) + (a<<3);
+    a = (a^0xb55a4f09) ^ (a>>16);
+    return a;
+}
+
 static PyObject *
 Cache_new(PyTypeObject *type, PyObject *args, PyObject **kwargs)
 {
@@ -112,6 +126,7 @@ Cache_grow(Cache *this) {
     mask = new_size - 1;
 
     PyObject *key;
+    Py_hash_t hash;
 
     for (i = 0; i < old_size; i++) {
         old_ep = &old_ep0[i];
@@ -121,7 +136,9 @@ Cache_grow(Cache *this) {
         if (key != NULL) {
             count++;
 
-            j = (size_t)key & mask;
+            hash = hash_int(key);
+
+            j = hash & mask;
 
             new_ep = &new_ep0[j];
 
@@ -132,7 +149,7 @@ Cache_grow(Cache *this) {
                 for (perturb = (size_t)key; ; perturb >>= PERTURB_SHIFT) {
                     j = (j << 2) + j + perturb + 1;
 
-                    new_ep = &new_ep0[(size_t)j & mask];
+                    new_ep = &new_ep0[j & mask];
 
                     if (new_ep->key == NULL) {
                         new_ep->key   = key;
@@ -184,11 +201,11 @@ Cache_get(Cache *this, PyObject *key)
         ep0 = (Entry *) &this->entries[0];
     }
 
-    Py_hash_t hash = (Py_hash_t)key;
-
     mask = this->size - 1;
 
-    i = (size_t)hash & mask;
+    Py_hash_t hash = hash_int(key);
+
+    i = hash & mask;
 
     ep = &ep0[i];
 
@@ -201,7 +218,7 @@ Cache_get(Cache *this, PyObject *key)
     if (ep->key == NULL)
         goto missing;
 
-    for (perturb = hash; ; perturb >>= PERTURB_SHIFT) {
+    for (perturb = key; ; perturb >>= PERTURB_SHIFT) {
         i = (i << 2) + i + perturb + 1;
 
         ep = &ep0[i & mask];
@@ -245,7 +262,8 @@ Cache_set(PyObject *self, PyObject *instance, PyObject *value)
     register Entry *ep;
 
     PyObject *key = instance;
-    Py_hash_t hash = (Py_hash_t)key;
+
+    Py_hash_t hash = hash_int(key);
 
     mask = this->size - 1;
 
