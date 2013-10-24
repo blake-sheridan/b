@@ -88,7 +88,6 @@ Cache_dealloc(PyObject *self)
         Entry *ep0 = (Entry *)&this->entries[0];
 
         for (i = 0; i < len; i++) {
-            Py_XDECREF(ep0[i].key);
             Py_XDECREF(ep0[i].value);
         }
     }
