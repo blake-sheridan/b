@@ -170,6 +170,37 @@ grow(Cache *this) {
 }
 
 static PyObject *
+reap(Cache *this) {
+    Py_ssize_t count = 0;
+
+    Entry *ep0 = (Entry *)&this->entries[0];
+    Py_ssize_t i, n;
+    Entry *curr;
+
+    for (i = 0, n = this->size; i < n; i++) {
+        curr = &ep0[i];
+
+        if (curr->key != NULL) {
+            // FIXME: this is very much a giant hack,
+            // basically checking if a heap pointer
+            // 'appears' to have been freed/reused.
+            if (Py_REFCNT(curr->key) > 100) {
+                Py_DECREF(curr->value);
+
+                curr->key = NULL;
+                curr->value = NULL;
+
+                this->usable++;
+
+                count++;
+            }
+        }
+    }
+
+    return PyLong_FromSsize_t(count);
+}
+
+static PyObject *
 get(Cache *this, PyObject *key)
 {
     PyObject *value;
@@ -369,6 +400,15 @@ length(Cache *this) {
     return USABLE(this->size) - this->usable;
 }
 
+PyDoc_STRVAR(reap_doc,
+"TODO Memoizer.reap __doc__");
+
+static PyMethodDef Memoizer_methods[] = {
+    //{"__getitem__", (PyCFunction)Cache_get, METH_O|METH_COEXIST, Cache_get_doc},
+    {"reap", (PyCFunction)reap, METH_NOARGS, reap_doc},
+    {NULL,              NULL}           /* sentinel */
+};
+
 static PyMappingMethods Memoizer_as_mapping = {
     (lenfunc)length, /* mp_length */
     (binaryfunc)get, /* mp_subscript */
@@ -419,7 +459,7 @@ PyTypeObject MemoizerType = {
     0,                         /* tp_weaklistoffset */
     0,                         /* tp_iter */
     0,                         /* tp_iternext */
-    0,                         /* tp_methods */
+    Memoizer_methods,          /* tp_methods */
     0,                         /* tp_members */
     0,                         /* tp_getset */
     0,                         /* tp_base */

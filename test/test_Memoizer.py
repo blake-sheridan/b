@@ -136,3 +136,49 @@ class MemoizerTests(unittest.TestCase):
         del m[2]
 
         self.assertNotIn(2, m)
+
+    def test_reap(self):
+        creations = 0
+        deletions = 0
+
+        class A:
+            def __init__(self):
+                nonlocal creations
+                creations += 1
+
+            def __del__(self):
+                nonlocal deletions
+                deletions += 1
+
+        def new_a(_):
+            return A()
+
+        m = lazy.Memoizer(new_a)
+
+        objects = [object() for i in range(10)]
+
+        for o in objects:
+            m[o]
+
+        self.assertEqual(creations, 10)
+        self.assertEqual(deletions, 0)
+        self.assertEqual(len(m), 10)
+
+        reaps = m.reap()
+
+        self.assertEqual(reaps, 0)
+
+        del objects
+
+        reaps = m.reap()
+
+        # I was only getting 9/10 collections here,
+        # but I believe it's due to gc uncertainty?
+        # This might come out lower with other builds.
+
+        MINIMUM_REAPS = 8
+
+        self.assertGreater(reaps, MINIMUM_REAPS)
+
+        self.assertEqual(deletions, reaps)
+        self.assertEqual(len(m), 10 - reaps)
