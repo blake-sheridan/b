@@ -10,34 +10,34 @@ typedef struct {
     PyObject *value;
 } Entry;
 
-typedef struct {
-    PyObject *function;
-    Py_ssize_t size;
-    Py_ssize_t usable;
-    Entry entries[1];
-} Table;
+#define Cache_HEAD                              \
+    PyObject *function;                         \
+    Py_ssize_t size;                            \
+    Py_ssize_t usable;                          \
+    Entry (*entries)[1];
 
 typedef struct {
     PyObject_HEAD
-    Table *table;
+    Cache_HEAD
+} Cache;
+
+typedef struct {
+    PyObject_HEAD
+    Cache_HEAD
 } Memoizer;
 
 typedef struct {
     PyObject_HEAD
-    Table *table;
+    Cache_HEAD
 } Property;
 
-/* Table */
-
-static Table *
-Table_new(PyObject *args, PyObject **kwargs)
+static PyObject *
+Cache_new(PyTypeObject *type, PyObject *args, PyObject **kwargs)
 {
     PyObject *function;
-    Py_ssize_t size = INITIAL_SIZE;
 
-    if (!PyArg_ParseTuple(args, "O", &function)) {
+    if (!PyArg_ParseTuple(args, "O", &function))
         return NULL;
-    }
 
     if (!PyCallable_Check(function)) {
         PyErr_Format(PyExc_TypeError,
@@ -46,118 +46,147 @@ Table_new(PyObject *args, PyObject **kwargs)
         return NULL;
     }
 
-    Table *this = PyMem_Malloc(sizeof(Table) +
-                               sizeof(Entry) * (size-1));
-    if (this == NULL) {
-        PyErr_NoMemory();
+    PyObject *self = type->tp_alloc(type, 0);
+    if (self == NULL)
         return NULL;
-    }
 
-    Entry *ep0 = &this->entries[0];
-    Py_ssize_t i;
-    for (i = 0; i < size; i++) {
-        ep0[i].key = NULL;
-        ep0[i].value = NULL;
-    }
+    Cache *this = (Cache *)self;
 
     Py_INCREF(function);
 
     this->function = function;
-    this->size = size;
-    this->usable = USABLE(size);
+    this->entries = NULL;
 
-    return this;
+    return self;
 }
 
 static void
-Table_free(Table *this)
+Cache_dealloc(PyObject *self)
 {
-    Py_XDECREF(this->function);
+    Cache *this = (Cache *)self;
 
-    Entry *entries = &this->entries[0];
-    Py_ssize_t i, n;
-    for (i = 0, n = this->size; i < n; i++) {
-        Py_XDECREF(entries[i].key);
-        Py_XDECREF(entries[i].value);
+    Py_DECREF(this->function);
+
+    if (this->entries != NULL) {
+        register Py_ssize_t i;
+        register Py_ssize_t len = this->size;
+
+        Entry *ep0 = (Entry *)&this->entries[0];
+
+        for (i = 0; i < len; i++) {
+            Py_XDECREF(ep0[i].key);
+            Py_XDECREF(ep0[i].value);
+        }
     }
 
-    PyMem_FREE(this);
+    self->ob_type->tp_free(self);
 }
 
 static int
-Table_resize(Table *this) {
-    PyErr_SetString(PyExc_NotImplementedError, "resize");
-    return -1;
-/*
+Cache_grow(Cache *this) {
     Py_ssize_t old_size = this->size;
     Py_ssize_t new_size = old_size * 2;
 
-    Entry (*old_entries)[] = this->entries;
-    Entry (*new_entries)[] = PyMem_Malloc(new_size * sizeof(Entry));
+    Entry (*old_entries)[old_size] = this->entries;
+    Entry (*new_entries)[new_size] = PyMem_Malloc(new_size * sizeof(Entry));
     if (new_entries == NULL) {
         PyErr_NoMemory();
         return -1;
     }
 
-    this->entries = new_entries;
-    this->size = new_size;
+    Entry *old_ep0 = (Entry *)&old_entries[0];
+    Entry *new_ep0 = (Entry *)&new_entries[0];
 
-    int i;
+    register size_t i, j;
+    register size_t perturb;
+    register size_t mask;
+    register Entry *old_ep, *new_ep;
 
-    for (i = 0; i < new_size; i++) {
-        (*new_entries)[i].key = NULL;
+    for (j = 0; j < new_size; j++) {
+        new_ep0[j].key = NULL;
+        new_ep0[j].value = NULL;
     }
 
+    int count = 0;
+
+    mask = new_size - 1;
+
     PyObject *key;
-    int j;
-    Entry *entry;
 
     for (i = 0; i < old_size; i++) {
-        key = (*old_entries)[i].key;
+        old_ep = &old_ep0[i];
+
+        key = old_ep->key;
 
         if (key != NULL) {
-            j = (size_t)key % new_size;
+            count++;
 
-            while (1) {
-                entry = &(*new_entries)[j];
+            j = (size_t)key & mask;
 
-                if (entry->key == NULL) {
-                    entry->key = key;
-                    entry->value = (*old_entries)[i].value;
-                    break;
-                }
+            new_ep = &new_ep0[j];
 
-                if (j == new_size) {
-                    j = 0;
-                } else {
-                    j++;
+            if (new_ep->key == NULL) {
+                new_ep->key   = key;
+                new_ep->value = old_ep->value;
+            } else {
+                for (perturb = (size_t)key; ; perturb >>= PERTURB_SHIFT) {
+                    j = (j << 2) + j + perturb + 1;
+
+                    new_ep = &new_ep0[(size_t)j & mask];
+
+                    if (new_ep->key == NULL) {
+                        new_ep->key   = key;
+                        new_ep->value = old_ep->value;
+                        break;
+                    }
                 }
             }
         }
     }
 
-    PyMem_Free(old_entries);
+    PyMem_FREE(old_entries);
+
+    this->entries = new_entries;
+    this->size = new_size;
+    this->usable = USABLE(new_size) - count;
 
     return 0;
-*/
 }
 
-static inline PyObject *
-Table_get(Table *this, PyObject *key)
+static PyObject *
+Cache_get(Cache *this, PyObject *key)
 {
     PyObject *value;
 
     register size_t i;
     register size_t perturb;
     register size_t mask;
-    Entry *ep0; // register-ing this slows by 33%
     register Entry *ep;
+    Entry *ep0; // register-ing this slows by 33%
+
+    if (this->entries == NULL) {
+        this->entries = PyMem_Malloc(sizeof(Entry) * INITIAL_SIZE);
+        if (this->entries == NULL) {
+            PyErr_NoMemory();
+            return NULL;
+        }
+
+        this->size = INITIAL_SIZE;
+        this->usable = USABLE(INITIAL_SIZE);
+
+        ep0 = (Entry *)&this->entries[0];
+
+        for (i = 0; i < INITIAL_SIZE; i++) {
+            ep0[i].key = NULL;
+            ep0[i].value = NULL;
+        }
+    } else {
+        ep0 = (Entry *) &this->entries[0];
+    }
 
     Py_hash_t hash = (Py_hash_t)key;
 
     mask = this->size - 1;
-
-    ep0 = &this->entries[0];
 
     i = (size_t)hash & mask;
 
@@ -196,7 +225,7 @@ Table_get(Table *this, PyObject *key)
     ep->value = value;
 
     if (this->usable-- <= 0)
-        if (Table_resize(this) == -1)
+        if (Cache_grow(this) == -1)
             return NULL;
 
     Py_INCREF(value);
@@ -205,19 +234,22 @@ Table_get(Table *this, PyObject *key)
 }
 
 static int
-Table_set(Table *this, PyObject *key, PyObject *value)
+Cache_set(PyObject *self, PyObject *instance, PyObject *value)
 {
+    Cache *this = (Cache *)self;
+
     register size_t i;
     register size_t perturb;
     register size_t mask;
     Entry *ep0;
     register Entry *ep;
 
+    PyObject *key = instance;
     Py_hash_t hash = (Py_hash_t)key;
 
     mask = this->size - 1;
 
-    ep0 = &this->entries[0];
+    ep0 = (Entry *)&this->entries[0];
 
     i = (size_t)hash & mask;
 
@@ -245,14 +277,14 @@ Table_set(Table *this, PyObject *key, PyObject *value)
     if (value == NULL)
         return -1;
 
-    ep->key = NULL;
-    ep->value = NULL;
+    Py_INCREF(value);
+
+    ep->key = key;
+    ep->value = value;
 
     if (this->usable-- <= 0)
-        if (Table_resize(this) == -1)
+        if (Cache_grow(this) == -1)
             return -1;
-
-    Py_INCREF(value);
 
     return 0;
 
@@ -265,68 +297,23 @@ Table_set(Table *this, PyObject *key, PyObject *value)
 
         this->usable++;
     } else {
-        ep->value = value;
-
         Py_INCREF(value);
+
+        ep->value = value;
     }
 
     return 0;
 }
 
-static inline int
-Table_used(Table *this) {
+static Py_ssize_t
+Cache_length(Cache *this) {
     return USABLE(this->size) - this->usable;
 }
 
-/* Memoizer */
-
-static PyObject *
-Memoizer_new(PyTypeObject *type, PyObject *args, PyObject **kwargs)
-{
-    Table *table = Table_new(args, kwargs);
-    if (table == NULL) {
-        return NULL;
-    }
-
-    PyObject *self = type->tp_alloc(type, 0);
-    if (self == NULL) {
-        return NULL; // should dealloc
-    }
-
-    ((Memoizer*)self)->table = table;
-
-    return self;
-}
-
-static void
-Memoizer_dealloc(PyObject *self)
-{
-    Table_free(((Memoizer*)self)->table);
-    self->ob_type->tp_free(self);
-}
-
-static Py_ssize_t
-Memoizer_length(PyObject *self)
-{
-    return Table_used(((Memoizer*)self)->table);
-}
-
-static PyObject *
-Memoizer_subscript(PyObject *self, PyObject *key)
-{
-    return Table_get(((Memoizer*)self)->table, key);
-}
-
-static int
-Memoizer_ass_subscript(PyObject *self, PyObject *key, PyObject *value)
-{
-    return Table_set(((Memoizer*)self)->table, key, value);
-}
-
 static PyMappingMethods Memoizer_as_mapping = {
-    (lenfunc)Memoizer_length, /* mp_length */
-    (binaryfunc)Memoizer_subscript, /* mp_subscript */
-    (objobjargproc)Memoizer_ass_subscript, /* mp_ass_subscript */
+    (lenfunc)Cache_length, /* mp_length */
+    (binaryfunc)Cache_get, /* mp_subscript */
+    (objobjargproc)Cache_set, /* mp_ass_subscript */
 };
 
 PyDoc_STRVAR(Memoizer_doc,
@@ -337,7 +324,7 @@ PyTypeObject MemoizerType = {
     "Memoizer",                /* tp_name */
     sizeof(Memoizer),          /* tp_basicsize */
     0,                         /* tp_itemsize */
-    (destructor)Memoizer_dealloc,   /* tp_dealloc */
+    (destructor)Cache_dealloc, /* tp_dealloc */
     0,                         /* tp_print */
     0,                         /* tp_getattr */
     0,                         /* tp_setattr */
@@ -370,52 +357,27 @@ PyTypeObject MemoizerType = {
     0,                         /* tp_dictoffset */
     0,                         /* tp_init */
     0,                         /* tp_alloc */
-    (newfunc)Memoizer_new,     /* tp_new */
+    (newfunc)Cache_new,        /* tp_new */
 };
 
 /* property */
 
 static PyObject *
-property_new(PyTypeObject *type, PyObject *args, PyObject **kwargs)
-{
-    Table *table = Table_new(args, kwargs);
-    if (table == NULL) {
-        return NULL;
-    }
-
-    PyObject *self = type->tp_alloc(type, 0);
-    if (self == NULL) {
-        return NULL; // should dealloc
-    }
-
-    ((Property*)self)->table = table;
-
-    return self;
-}
-
-static void
-property_dealloc(PyObject *self)
-{
-    Table_free(((Property*)self)->table);
-    self->ob_type->tp_free(self);
-}
-
-static PyObject *
 property_get_doc(PyObject *self)
 {
-    return PyObject_GetAttrString(((Property*)self)->table->function, "__doc__");
+    return PyObject_GetAttrString(((Property*)self)->function, "__doc__");
 }
 
 static PyObject *
 property_get_name(PyObject *self)
 {
-    return PyObject_GetAttrString(((Property*)self)->table->function, "__name__");
+    return PyObject_GetAttrString(((Property*)self)->function, "__name__");
 }
 
 static PyObject *
 property_get_qualname(PyObject *self)
 {
-    return PyObject_GetAttrString(((Property*)self)->table->function, "__qualname__");
+    return PyObject_GetAttrString(((Property*)self)->function, "__qualname__");
 }
 
 static PyGetSetDef property_getset[] = {
@@ -433,13 +395,7 @@ property_get(PyObject *self, PyObject *instance, PyObject *owner)
         return self;
     }
 
-    return Table_get(((Property*)self)->table, instance);
-}
-
-static int
-property_set(PyObject *self, PyObject *instance, PyObject *value)
-{
-    return Table_set(((Property*)self)->table, instance, value);
+    return Cache_get((Cache *)self, instance);
 }
 
 PyDoc_STRVAR(property_doc,
@@ -450,7 +406,7 @@ PyTypeObject PropertyType = {
     "property",                /* tp_name */
     sizeof(Property),          /* tp_basicsize */
     0,                         /* tp_itemsize */
-    (destructor)property_dealloc,   /* tp_dealloc */
+    (destructor)Cache_dealloc, /* tp_dealloc */
     0,                         /* tp_print */
     0,                         /* tp_getattr */
     0,                         /* tp_setattr */
@@ -479,11 +435,11 @@ PyTypeObject PropertyType = {
     0,                         /* tp_base */
     0,                         /* tp_dict */
     (descrgetfunc)property_get,/* tp_descr_get */
-    (descrsetfunc)property_set,/* tp_descr_set */
+    (descrsetfunc)Cache_set,   /* tp_descr_set */
     0,                         /* tp_dictoffset */
     0,                         /* tp_init */
     0,                         /* tp_alloc */
-    (newfunc)property_new,     /* tp_new */
+    (newfunc)Cache_new,        /* tp_new */
 };
 
 /* Module */
