@@ -250,6 +250,48 @@ Cache_get(Cache *this, PyObject *key)
 }
 
 static int
+Cache_contains(Cache *this, PyObject *key)
+{
+    if (this->entries == NULL)
+        return 0;
+
+    register size_t i;
+    register size_t perturb;
+    register Entry *ep;
+    register size_t mask;
+    Entry *ep0 = (Entry *)&this->entries[0]; // register-ing this slows by 33%
+
+    mask = this->size - 1;
+
+    Py_hash_t hash = hash_int(key);
+
+    i = hash & mask;
+
+    ep = &ep0[i];
+
+    if (ep->key == key)
+        return 1;
+
+    if (ep->key == NULL)
+        return 0;
+
+    for (perturb = key; ; perturb >>= PERTURB_SHIFT) {
+        i = (i << 2) + i + perturb + 1;
+
+        ep = &ep0[i & mask];
+
+        if (ep->key == key)
+            return 1;
+
+        if (ep->key == NULL)
+            return 0;
+    }
+
+    assert(0);
+    return -1;
+}
+
+static int
 Cache_set(PyObject *self, PyObject *instance, PyObject *value)
 {
     Cache *this = (Cache *)self;
@@ -333,6 +375,19 @@ static PyMappingMethods Memoizer_as_mapping = {
     (objobjargproc)Cache_set, /* mp_ass_subscript */
 };
 
+static PySequenceMethods Memoizer_as_sequence = {
+    0,                          /* sq_length */
+    0,                          /* sq_concat */
+    0,                          /* sq_repeat */
+    0,                          /* sq_item */
+    0,                          /* sq_slice */
+    0,                          /* sq_ass_item */
+    0,                          /* sq_ass_slice */
+    (objobjproc)Cache_contains, /* sq_contains */
+    0,                          /* sq_inplace_concat */
+    0,                          /* sq_inplace_repeat */
+};
+
 PyDoc_STRVAR(Memoizer_doc,
 "TODO Memoizer __doc__");
 
@@ -348,7 +403,7 @@ PyTypeObject MemoizerType = {
     0,                         /* tp_reserved */
     0,                         /* tp_repr */
     0,                         /* tp_as_number */
-    0,                         /* tp_as_sequence */
+    &Memoizer_as_sequence,     /* tp_as_sequence */
     &Memoizer_as_mapping,      /* tp_as_mapping */
     0,                         /* tp_hash  */
     0,                         /* tp_call */

@@ -120,3 +120,19 @@ class MemoizerTests(unittest.TestCase):
             self.assertEqual(m[i], i + 2)
 
         self.assertEqual(count, 128)
+
+    def test_contains(self):
+        def plus_two(x):
+            return x + 2
+
+        m = lazy.Memoizer(plus_two)
+
+        self.assertNotIn(2, m)
+
+        m[2]
+
+        self.assertIn(2, m)
+
+        del m[2]
+
+        self.assertNotIn(2, m)
