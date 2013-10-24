@@ -46,7 +46,7 @@ hash_int(void* x)
 }
 
 static PyObject *
-Cache_new(PyTypeObject *type, PyObject *args, PyObject **kwargs)
+new(PyTypeObject *type, PyObject *args, PyObject **kwargs)
 {
     PyObject *function;
 
@@ -75,7 +75,7 @@ Cache_new(PyTypeObject *type, PyObject *args, PyObject **kwargs)
 }
 
 static void
-Cache_dealloc(PyObject *self)
+dealloc(PyObject *self)
 {
     Cache *this = (Cache *)self;
 
@@ -96,7 +96,7 @@ Cache_dealloc(PyObject *self)
 }
 
 static int
-Cache_grow(Cache *this) {
+grow(Cache *this) {
     Py_ssize_t old_size = this->size;
     Py_ssize_t new_size = old_size * 2;
 
@@ -170,7 +170,7 @@ Cache_grow(Cache *this) {
 }
 
 static PyObject *
-Cache_get(Cache *this, PyObject *key)
+get(Cache *this, PyObject *key)
 {
     PyObject *value;
 
@@ -241,7 +241,7 @@ Cache_get(Cache *this, PyObject *key)
     ep->value = value;
 
     if (this->usable-- <= 0)
-        if (Cache_grow(this) == -1)
+        if (grow(this) == -1)
             return NULL;
 
     Py_INCREF(value);
@@ -250,7 +250,7 @@ Cache_get(Cache *this, PyObject *key)
 }
 
 static int
-Cache_contains(Cache *this, PyObject *key)
+contains(Cache *this, PyObject *key)
 {
     if (this->entries == NULL)
         return 0;
@@ -292,7 +292,7 @@ Cache_contains(Cache *this, PyObject *key)
 }
 
 static int
-Cache_set(PyObject *self, PyObject *instance, PyObject *value)
+set(PyObject *self, PyObject *instance, PyObject *value)
 {
     Cache *this = (Cache *)self;
 
@@ -342,7 +342,7 @@ Cache_set(PyObject *self, PyObject *instance, PyObject *value)
     ep->value = value;
 
     if (this->usable-- <= 0)
-        if (Cache_grow(this) == -1)
+        if (grow(this) == -1)
             return -1;
 
     return 0;
@@ -365,14 +365,14 @@ Cache_set(PyObject *self, PyObject *instance, PyObject *value)
 }
 
 static Py_ssize_t
-Cache_length(Cache *this) {
+length(Cache *this) {
     return USABLE(this->size) - this->usable;
 }
 
 static PyMappingMethods Memoizer_as_mapping = {
-    (lenfunc)Cache_length, /* mp_length */
-    (binaryfunc)Cache_get, /* mp_subscript */
-    (objobjargproc)Cache_set, /* mp_ass_subscript */
+    (lenfunc)length, /* mp_length */
+    (binaryfunc)get, /* mp_subscript */
+    (objobjargproc)set, /* mp_ass_subscript */
 };
 
 static PySequenceMethods Memoizer_as_sequence = {
@@ -383,7 +383,7 @@ static PySequenceMethods Memoizer_as_sequence = {
     0,                          /* sq_slice */
     0,                          /* sq_ass_item */
     0,                          /* sq_ass_slice */
-    (objobjproc)Cache_contains, /* sq_contains */
+    (objobjproc)contains,       /* sq_contains */
     0,                          /* sq_inplace_concat */
     0,                          /* sq_inplace_repeat */
 };
@@ -396,7 +396,7 @@ PyTypeObject MemoizerType = {
     "Memoizer",                /* tp_name */
     sizeof(Memoizer),          /* tp_basicsize */
     0,                         /* tp_itemsize */
-    (destructor)Cache_dealloc, /* tp_dealloc */
+    (destructor)dealloc,       /* tp_dealloc */
     0,                         /* tp_print */
     0,                         /* tp_getattr */
     0,                         /* tp_setattr */
@@ -429,7 +429,7 @@ PyTypeObject MemoizerType = {
     0,                         /* tp_dictoffset */
     0,                         /* tp_init */
     0,                         /* tp_alloc */
-    (newfunc)Cache_new,        /* tp_new */
+    (newfunc)new,              /* tp_new */
 };
 
 /* property */
@@ -467,7 +467,7 @@ property_get(PyObject *self, PyObject *instance, PyObject *owner)
         return self;
     }
 
-    return Cache_get((Cache *)self, instance);
+    return get((Cache *)self, instance);
 }
 
 PyDoc_STRVAR(property_doc,
@@ -478,7 +478,7 @@ PyTypeObject PropertyType = {
     "property",                /* tp_name */
     sizeof(Property),          /* tp_basicsize */
     0,                         /* tp_itemsize */
-    (destructor)Cache_dealloc, /* tp_dealloc */
+    (destructor)dealloc,       /* tp_dealloc */
     0,                         /* tp_print */
     0,                         /* tp_getattr */
     0,                         /* tp_setattr */
@@ -507,11 +507,11 @@ PyTypeObject PropertyType = {
     0,                         /* tp_base */
     0,                         /* tp_dict */
     (descrgetfunc)property_get,/* tp_descr_get */
-    (descrsetfunc)Cache_set,   /* tp_descr_set */
+    (descrsetfunc)set,         /* tp_descr_set */
     0,                         /* tp_dictoffset */
     0,                         /* tp_init */
     0,                         /* tp_alloc */
-    (newfunc)Cache_new,        /* tp_new */
+    (newfunc)new,              /* tp_new */
 };
 
 /* Module */
