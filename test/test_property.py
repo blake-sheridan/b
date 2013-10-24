@@ -58,3 +58,32 @@ class LazyPropertyTests(unittest.TestCase):
         a.plus_two = 5
 
         self.assertEqual(a.plus_two, 5)
+
+    def test_owner_gc(self):
+        # Not that this should have happened,
+        # but for sanity.
+
+        creations = 0
+        deletions = 0
+
+        class B:
+            def __init__(self):
+                nonlocal creations
+                creations += 1
+
+            def __del__(self):
+                nonlocal deletions
+                deletions += 1
+
+            @lazy.property
+            def x(self):
+                return 5
+
+        instances = [B() for i in range(10)]
+
+        self.assertEqual(creations, 10)
+        self.assertEqual(deletions, 0)
+
+        del instances
+
+        self.assertEqual(deletions, 10)
