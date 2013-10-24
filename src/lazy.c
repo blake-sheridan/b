@@ -48,6 +48,7 @@ hash_int(void* x)
 static PyObject *
 new(PyTypeObject *type, PyObject *args, PyObject **kwargs)
 {
+    PyObject *self;
     PyObject *function;
 
     if (!PyArg_ParseTuple(args, "O", &function))
@@ -60,16 +61,14 @@ new(PyTypeObject *type, PyObject *args, PyObject **kwargs)
         return NULL;
     }
 
-    PyObject *self = type->tp_alloc(type, 0);
+    self = type->tp_alloc(type, 0);
     if (self == NULL)
         return NULL;
 
-    Cache *this = (Cache *)self;
-
     Py_INCREF(function);
 
-    this->function = function;
-    this->entries = NULL;
+    ((Cache *)self)->function = function;
+    ((Cache *)self)->entries = NULL;
 
     return self;
 }
@@ -100,32 +99,36 @@ grow(Cache *this) {
     Py_ssize_t old_size = this->size;
     Py_ssize_t new_size = old_size * 2;
 
+    Entry *old_ep0;
+    Entry *new_ep0;
+
     Entry (*old_entries)[old_size] = this->entries;
     Entry (*new_entries)[new_size] = PyMem_Malloc(new_size * sizeof(Entry));
-    if (new_entries == NULL) {
-        PyErr_NoMemory();
-        return -1;
-    }
-
-    Entry *old_ep0 = (Entry *)&old_entries[0];
-    Entry *new_ep0 = (Entry *)&new_entries[0];
 
     register size_t i, j;
     register size_t perturb;
     register size_t mask;
     register Entry *old_ep, *new_ep;
 
+    int count = 0;
+
+    PyObject *key;
+    Py_hash_t hash;
+
+    if (new_entries == NULL) {
+        PyErr_NoMemory();
+        return -1;
+    }
+
+    old_ep0 = (Entry *)&old_entries[0];
+    new_ep0 = (Entry *)&new_entries[0];
+
     for (j = 0; j < new_size; j++) {
         new_ep0[j].key = NULL;
         new_ep0[j].value = NULL;
     }
 
-    int count = 0;
-
     mask = new_size - 1;
-
-    PyObject *key;
-    Py_hash_t hash;
 
     for (i = 0; i < old_size; i++) {
         old_ep = &old_ep0[i];
@@ -210,6 +213,7 @@ get(Cache *this, PyObject *key)
     register size_t mask;
     register Entry *ep;
     Entry *ep0; // register-ing this slows by 33%
+    Py_hash_t hash;
 
     if (this->entries == NULL) {
         this->entries = PyMem_Malloc(sizeof(Entry) * INITIAL_SIZE);
@@ -233,7 +237,7 @@ get(Cache *this, PyObject *key)
 
     mask = this->size - 1;
 
-    Py_hash_t hash = hash_int(key);
+    hash = hash_int(key);
 
     i = hash & mask;
 
@@ -283,18 +287,22 @@ get(Cache *this, PyObject *key)
 static int
 contains(Cache *this, PyObject *key)
 {
-    if (this->entries == NULL)
-        return 0;
-
     register size_t i;
     register size_t perturb;
     register Entry *ep;
     register size_t mask;
-    Entry *ep0 = (Entry *)&this->entries[0]; // register-ing this slows by 33%
+
+    Entry *ep0; // register-ing this slows by 33%
+    Py_hash_t hash;
+
+    if (this->entries == NULL)
+        return 0;
+
+    ep0 = (Entry *)&this->entries[0];
 
     mask = this->size - 1;
 
-    Py_hash_t hash = hash_int(key);
+    hash = hash_int(key);
 
     i = hash & mask;
 
