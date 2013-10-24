@@ -93,14 +93,30 @@ class MemoizerTests(unittest.TestCase):
 
         self.assertEqual(m[2], 5)
 
-    def test_resize(self):
+    def test_grow(self):
+        count = 0
+
         def plus_two(x):
+            nonlocal count
+            count += 1
             return x + 2
 
         m = lazy.Memoizer(plus_two)
+
+        for i in range(64):
+            m[i]
+
+        self.assertEqual(count, 64)
 
         # Current implementation detail:
         # INITIAL_SIZE is 128
 
         for i in range(128):
             m[i]
+
+        self.assertEqual(count, 128)
+
+        for i in range(128):
+            self.assertEqual(m[i], i + 2)
+
+        self.assertEqual(count, 128)
