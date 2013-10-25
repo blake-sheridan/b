@@ -13,6 +13,7 @@ setup(
                 'include',
             ],
             sources = [
+                'src/__init__.c',
                 'src/lazy.c',
             ],
         )
