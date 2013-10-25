@@ -9,6 +9,9 @@ setup(
     ext_modules = [
         Extension(
             name = '_lazy',
+            include_dirs = [
+                'include',
+            ],
             sources = [
                 'src/lazy.c',
             ],
