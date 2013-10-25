@@ -110,7 +110,7 @@ grow(Cache *this) {
     register size_t mask;
     register Entry *old_ep, *new_ep;
 
-    int count = 0;
+    Py_ssize_t new_usable = USABLE(new_size);
 
     PyObject *key;
     Py_hash_t hash;
@@ -136,7 +136,7 @@ grow(Cache *this) {
         key = old_ep->key;
 
         if (key != NULL) {
-            count++;
+            new_usable--;
 
             hash = hash_int(key);
 
@@ -148,7 +148,7 @@ grow(Cache *this) {
                 new_ep->key   = key;
                 new_ep->value = old_ep->value;
             } else {
-                for (perturb = (size_t)key; ; perturb >>= PERTURB_SHIFT) {
+                for (perturb = hash; ; perturb >>= PERTURB_SHIFT) {
                     j = (j << 2) + j + perturb + 1;
 
                     new_ep = &new_ep0[j & mask];
@@ -167,7 +167,7 @@ grow(Cache *this) {
 
     this->entries = new_entries;
     this->size = new_size;
-    this->usable = USABLE(new_size) - count;
+    this->usable = new_usable;
 
     return 0;
 }
@@ -252,7 +252,7 @@ get(Cache *this, PyObject *key)
     if (ep->key == NULL)
         goto missing;
 
-    for (perturb = key; ; perturb >>= PERTURB_SHIFT) {
+    for (perturb = hash; ; perturb >>= PERTURB_SHIFT) {
         i = (i << 2) + i + perturb + 1;
 
         ep = &ep0[i & mask];
@@ -314,7 +314,7 @@ contains(Cache *this, PyObject *key)
     if (ep->key == NULL)
         return 0;
 
-    for (perturb = key; ; perturb >>= PERTURB_SHIFT) {
+    for (perturb = hash; ; perturb >>= PERTURB_SHIFT) {
         i = (i << 2) + i + perturb + 1;
 
         ep = &ep0[i & mask];
