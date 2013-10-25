@@ -14,7 +14,8 @@ setup(
             ],
             sources = [
                 'src/__init__.c',
-                'src/lazy.c',
+                'src/memoizer.c',
+                'src/property.c',
             ],
         )
     ],
