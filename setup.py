@@ -9,6 +9,9 @@ setup(
     ext_modules = [
         Extension(
             name = '_lazy',
+            depends = [
+                'include/lazy.h',
+                ],
             include_dirs = [
                 'include',
             ],
