@@ -10,7 +10,7 @@ setup(
         Extension(
             name = '_lazy',
             depends = [
-                'include/lazy.h',
+                'include/memoizer.h',
                 ],
             include_dirs = [
                 'include',

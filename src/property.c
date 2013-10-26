@@ -1,43 +1,69 @@
 #include <Python.h>
 
-#include "lazy.h"
+#include "memoizer.h"
 
 typedef struct {
     PyObject_HEAD
-    Cache_HEAD
+    PyObject *function;
+    Memoizer *memoizer;
 } Property;
 
 PyDoc_STRVAR(__doc__,
 "TODO property __doc__");
 
-static PyObject *
+static Property *
 __new__(PyTypeObject *type, PyObject *args, PyObject **kwargs)
 {
-    return new(type, args, kwargs);
+    Property *self;
+    PyObject *function;
+
+    if (!PyArg_ParseTuple(args, "O", &function))
+        return NULL;
+
+    if (!PyCallable_Check(function)) {
+        PyErr_Format(PyExc_TypeError,
+                     "expected callable, got: %s",
+                     Py_TYPE(function)->tp_name);
+        return NULL;
+    }
+
+    self = (Property *)type->tp_alloc(type, 0);
+    if (self == NULL)
+        return NULL;
+
+    Py_INCREF(function);
+
+    self->function = function;
+    self->memoizer = NULL;
+
+    return self;
 }
 
 static void
-__del__(PyObject *self)
+__del__(Property *self)
 {
-    dealloc(self);
+    Py_DECREF(self->function);
+    Py_XDECREF(self->memoizer);
+
+    Py_TYPE(self)->tp_free(self);
 }
 
 static PyObject *
-__doc__getter(PyObject *self)
+__doc__getter(Property *self)
 {
-    return PyObject_GetAttrString(((Property*)self)->function, "__doc__");
+    return PyObject_GetAttrString(self->function, "__doc__");
 }
 
 static PyObject *
-__name__getter(PyObject *self)
+__name__getter(Property *self)
 {
-    return PyObject_GetAttrString(((Property*)self)->function, "__name__");
+    return PyObject_GetAttrString(self->function, "__name__");
 }
 
 static PyObject *
-__qualname__getter(PyObject *self)
+__qualname__getter(Property *self)
 {
-    return PyObject_GetAttrString(((Property*)self)->function, "__qualname__");
+    return PyObject_GetAttrString(self->function, "__qualname__");
 }
 
 static PyGetSetDef getset[] = {
@@ -48,20 +74,32 @@ static PyGetSetDef getset[] = {
 };
 
 static PyObject *
-__get__(PyObject *self, PyObject *instance, PyObject *owner)
+__get__(Property *self, PyObject *instance, PyObject *owner)
 {
     if (instance == Py_None || instance == NULL) {
         Py_INCREF(self);
-        return self;
+        return (PyObject *)self;
     }
 
-    return get((Cache *)self, instance);
+    if (self->memoizer == NULL) {
+        self->memoizer = Memoizer_new(self->function);
+        if (self->memoizer == NULL)
+            return NULL;
+    }
+
+    return Memoizer_get(self->memoizer, instance);
 }
 
 static int
-__set__(PyObject *self, PyObject *instance, PyObject *value)
+__set__(Property *self, PyObject *instance, PyObject *value)
 {
-    return set(self, instance, value);
+    if (self->memoizer == NULL) {
+        self->memoizer = Memoizer_new(self->function);
+        if (self->memoizer == NULL)
+            return -1;
+    }
+
+    return Memoizer_assign(self->memoizer, instance, value);
 }
 
 PyTypeObject PropertyType = {
