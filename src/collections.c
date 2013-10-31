@@ -983,7 +983,7 @@ IdentityDictItemsIterator__next__(PyObject *self)
     IdentityDict *dict = this->dict;
     Py_ssize_t i, size;
     Entry *entry_0;
-    PyObject *key, *item;
+    PyObject *key, *item, *value;
 
     if (dict == NULL)
         return NULL;
@@ -994,9 +994,14 @@ IdentityDictItemsIterator__next__(PyObject *self)
         key = entry_0[i].key;
 
         if (key != NULL) {
+            value = entry_0[i].value;
+
             item = PyTuple_New(2);
             if (item == NULL)
                 return NULL;
+
+            Py_INCREF(key);
+            Py_INCREF(value);
 
             /* "steals" references */
             PyTuple_SET_ITEM(item, 0, key);

@@ -175,3 +175,18 @@ class IdentityDictTests(unittest.TestCase):
 
         with self.assertRaises(KeyError):
             d.pop('no fallback!!!!!')
+
+    def test_resize(self):
+        d = IdentityDict()
+
+        # Current implementation detail:
+        # INITIAL_SIZE = 16
+        # resize at ~2/3
+
+        for i in range(30):
+            d[ConstantHash()] = i
+
+        # Random code snippet which
+        # cause core dump...
+        for _ in d.items():
+            pass
