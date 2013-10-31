@@ -130,3 +130,26 @@ class IdentityDictTests(unittest.TestCase):
             del reverse_map[value] # Failure if this KeyErrors
 
         self.assertEqual(count, LENGTH)
+
+    def test_clear(self):
+        LENGTH = 5
+
+        deletions = 0
+
+        class Tracked:
+            def __del__(self):
+                nonlocal deletions
+                deletions += 1
+
+        d = IdentityDict()
+
+        for i in range(LENGTH):
+            d[Tracked()] = i
+
+        self.assertEqual(deletions, 0)
+        self.assertEqual(len(d), LENGTH)
+
+        d.clear()
+
+        self.assertEqual(deletions, LENGTH)
+        self.assertEqual(len(d), 0)

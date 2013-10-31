@@ -715,8 +715,23 @@ static PyObject *
 IdentityDict_clear(PyObject *self)
 /*[clinic checksum: 735c297484b6301ab6db91e67b195cd122d817c8]*/
 {
-    PyErr_SetString(PyExc_NotImplementedError, "IdentityDict.clear");
-    return NULL;
+    IdentityDict *this = (IdentityDict *)self;
+    Py_ssize_t i, size;
+    Entry *entry_0 = (Entry *)&this->entries[0];
+    PyObject *key;
+
+    for (i = 0, size = this->size; i < size; i++) {
+        key = entry_0[i].key;
+
+        if (key != NULL) {
+            Py_DECREF(key);
+            Py_DECREF(entry_0[i].value);
+        }
+    }
+
+    this->usable = USABLE(this->size);
+
+    Py_RETURN_NONE;
 }
 
 /*[clinic]
