@@ -20,6 +20,12 @@ setup(
                 'src/memoizer.c',
                 'src/property.c',
             ],
+        ),
+        Extension(
+            name = 'b._collections',
+            sources = [
+                'src/collections.c',
+            ],
         )
     ],
 )
