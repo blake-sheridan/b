@@ -841,8 +841,18 @@ IdentityDictIterator__del__(PyObject *self)
 static PyObject *
 IdentityDictIterator__length_hint__(PyObject *self)
 {
-    PyErr_SetString(PyExc_NotImplementedError, "IdentityDictIterator.__length_hint__");
-    return NULL;
+    IdentityDictIterator *this = (IdentityDictIterator *)self;
+    IdentityDict *dict = this->dict;
+    Py_ssize_t length;
+
+    if (dict == NULL) {
+        length = 0;
+    } else {
+        /* TODO: account for count already iterated */
+        length = IdentityDict__len__((PyObject *)dict);
+    }
+
+    return PyLong_FromSsize_t(length);
 }
 
 static PyObject *
@@ -899,7 +909,7 @@ IdentityDictIterator_type = {
     0,                            /* tp_hash  */
     0,                            /* tp_call */
     0,                            /* tp_str */
-    0,                            /* tp_getattro */
+    PyObject_GenericGetAttr,      /* tp_getattro */
     0,                            /* tp_setattro */
     0,                            /* tp_as_buffer */
     Py_TPFLAGS_DEFAULT,           /* tp_flags */
@@ -940,6 +950,13 @@ PyInit__collections(void)
     Py_INCREF(&IdentityDict_type);
 
     PyModule_AddObject(module, "IdentityDict", (PyObject *)&IdentityDict_type);
+
+    if (PyType_Ready(&IdentityDictIterator_type) < 0)
+        return NULL;
+
+    Py_INCREF(&IdentityDictIterator_type);
+
+    PyModule_AddObject(module, "_IdentityDictIterator", (PyObject *)&IdentityDictIterator_type);
 
     return module;
 };
