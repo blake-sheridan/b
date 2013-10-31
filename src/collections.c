@@ -17,17 +17,18 @@ typedef struct {
     Entry (*entries)[1];
 } IdentityDict;
 
-typedef struct {
-    PyObject_HEAD
-    IdentityDict *dict;
-    Py_ssize_t index;
-} IdentityDictIterator;
-
 /* Forward */
 
 static int grow(IdentityDict *this);
 
-static IdentityDictIterator * IdentityDictIterator_new(IdentityDict *dict);
+static PyTypeObject IdentityDictIterator_type;
+
+static PyTypeObject IdentityDictKeys_type;
+static PyTypeObject IdentityDictItems_type;
+static PyTypeObject IdentityDictValues_type;
+
+static PyObject * IdentityDictIterator_new(IdentityDict *dict);
+static PyObject * IdentityDictView_new(PyTypeObject *type, IdentityDict *dict);
 
 /* http://burtleburtle.net/bob/hash/integer.html */
 static inline Py_hash_t
@@ -288,7 +289,7 @@ IdentityDict__len__(PyObject *self)
 static PyObject *
 IdentityDict__iter__(PyObject *self)
 {
-    return (PyObject *)IdentityDictIterator_new((IdentityDict *)self);
+    return IdentityDictIterator_new((IdentityDict *)self);
 }
 
 static int
@@ -644,8 +645,7 @@ static PyObject *
 IdentityDict_items(PyObject *self)
 /*[clinic checksum: ab64d075b37f5e6df7ab75d21a13e8a59c23c7b7]*/
 {
-    PyErr_SetString(PyExc_NotImplementedError, "IdentityDict.items");
-    return NULL;
+    return IdentityDictView_new(&IdentityDictItems_type, (IdentityDict *)self);
 }
 
 /*[clinic]
@@ -812,9 +812,13 @@ IdentityDict_type = {
 
 /* IdentityDictIterator */
 
-static PyTypeObject IdentityDictIterator_type;
+typedef struct {
+    PyObject_HEAD
+    IdentityDict *dict;
+    Py_ssize_t index;
+} IdentityDictIterator;
 
-static IdentityDictIterator *
+static PyObject *
 IdentityDictIterator_new(IdentityDict *dict)
 {
     IdentityDictIterator *this;
@@ -828,7 +832,7 @@ IdentityDictIterator_new(IdentityDict *dict)
     this->dict = dict;
     this->index = 0;
 
-    return this;
+    return (PyObject *)this;
 }
 
 static void
@@ -920,7 +924,221 @@ IdentityDictIterator_type = {
     0,                            /* tp_weaklistoffset */
     PyObject_SelfIter,            /* tp_iter */
     IdentityDictIterator__next__, /* tp_iternext */
-    IdentityDictIterator_methods, /* methods */
+    IdentityDictIterator_methods, /* tp_methods */
+};
+
+/* Views */
+
+typedef struct {
+    PyObject_HEAD
+    IdentityDict *dict;
+} IdentityDictView;
+
+static PyObject *
+IdentityDictView_new(PyTypeObject *type, IdentityDict *dict)
+{
+    IdentityDictView *this;
+
+    this = PyObject_New(IdentityDictView, type);
+    if (this == NULL)
+        return NULL;
+
+    Py_INCREF(dict);
+
+    this->dict = dict;
+
+    return (PyObject *)this;
+}
+
+static void
+IdentityDictView__del__(PyObject *self)
+{
+    Py_XDECREF(((IdentityDictView *)self)->dict);
+    PyObject_Del(self);
+}
+
+static Py_ssize_t
+IdentityDictView__len__(PyObject *self)
+{
+    return IdentityDict__len__((PyObject *)((IdentityDictView *)self)->dict);
+}
+
+/* View __contains__ */
+
+static PyObject *
+IdentityDictKeys__contains__(PyObject *self, PyObject *key)
+{
+    PyErr_SetString(PyExc_NotImplementedError, "IdentityDictKeys.__contains__");
+    return NULL;
+}
+
+static PyObject *
+IdentityDictItems__contains__(PyObject *self, PyObject *key)
+{
+    PyErr_SetString(PyExc_NotImplementedError, "IdentityDictItems.__contains__");
+    return NULL;
+}
+
+static PyObject *
+IdentityDictValues__contains__(PyObject *self, PyObject *key)
+{
+    PyErr_SetString(PyExc_NotImplementedError, "IdentityDictValues.__contains__");
+    return NULL;
+}
+
+/* View __iter__ */
+
+static PyObject *
+IdentityDictKeys__iter__(PyObject *self)
+{
+    PyErr_SetString(PyExc_NotImplementedError, "IdentityDictKeys.__iter__");
+    return NULL;
+}
+
+
+static PyObject *
+IdentityDictItems__iter__(PyObject *self)
+{
+    PyErr_SetString(PyExc_NotImplementedError, "IdentityDictItems.__iter__");
+    return NULL;
+}
+
+
+static PyObject *
+IdentityDictValues__iter__(PyObject *self)
+{
+    PyErr_SetString(PyExc_NotImplementedError, "IdentityDictValues.__iter__");
+    return NULL;
+}
+
+/* View as_sequence */
+
+static PySequenceMethods
+IdentityDictKeys_as_sequence = {
+    IdentityDictView__len__,         /* sq_length */
+    0,                               /* sq_concat */
+    0,                               /* sq_repeat */
+    0,                               /* sq_item */
+    0,                               /* sq_slice */
+    0,                               /* sq_ass_item */
+    0,                               /* sq_ass_slice */
+    IdentityDictKeys__contains__,    /* sq_contains */
+};
+
+static PySequenceMethods
+IdentityDictItems_as_sequence = {
+    IdentityDictView__len__,         /* sq_length */
+    0,                               /* sq_concat */
+    0,                               /* sq_repeat */
+    0,                               /* sq_item */
+    0,                               /* sq_slice */
+    0,                               /* sq_ass_item */
+    0,                               /* sq_ass_slice */
+    IdentityDictItems__contains__,   /* sq_contains */
+};
+
+static PySequenceMethods
+IdentityDictValues_as_sequence = {
+    IdentityDictView__len__,         /* sq_length */
+    0,                               /* sq_concat */
+    0,                               /* sq_repeat */
+    0,                               /* sq_item */
+    0,                               /* sq_slice */
+    0,                               /* sq_ass_item */
+    0,                               /* sq_ass_slice */
+    IdentityDictValues__contains__,  /* sq_contains */
+};
+
+/* View type */
+
+static PyTypeObject
+IdentityDictKeys_type = {
+    PyVarObject_HEAD_INIT(NULL, 0)
+    "IdentityDictKeys",             /* tp_name */
+    sizeof(IdentityDictView),       /* tp_basicsize */
+    0,                              /* tp_itemsize */
+    IdentityDictView__del__,        /* tp_dealloc */
+    0,                              /* tp_print */
+    0,                              /* tp_getattr */
+    0,                              /* tp_setattr */
+    0,                              /* tp_reserved */
+    0,                              /* tp_repr */
+    0,                              /* tp_as_number */
+    &IdentityDictKeys_as_sequence,  /* tp_as_sequence */
+    0,                              /* tp_as_mapping */
+    0,                              /* tp_hash  */
+    0,                              /* tp_call */
+    0,                              /* tp_str */
+    PyObject_GenericGetAttr,        /* tp_getattro */
+    0,                              /* tp_setattro */
+    0,                              /* tp_as_buffer */
+    Py_TPFLAGS_DEFAULT,             /* tp_flags */
+    0,                              /* tp_doc */
+    0,                              /* tp_traverse */
+    0,                              /* tp_clear */
+    0,                              /* tp_richcompare */
+    0,                              /* tp_weaklistoffset */
+    IdentityDictKeys__iter__,      /* tp_iter */
+};
+
+static PyTypeObject
+IdentityDictItems_type = {
+    PyVarObject_HEAD_INIT(NULL, 0)
+    "IdentityDictItems",            /* tp_name */
+    sizeof(IdentityDictView),       /* tp_basicsize */
+    0,                              /* tp_itemsize */
+    IdentityDictView__del__,        /* tp_dealloc */
+    0,                              /* tp_print */
+    0,                              /* tp_getattr */
+    0,                              /* tp_setattr */
+    0,                              /* tp_reserved */
+    0,                              /* tp_repr */
+    0,                              /* tp_as_number */
+    &IdentityDictItems_as_sequence, /* tp_as_sequence */
+    0,                              /* tp_as_mapping */
+    0,                              /* tp_hash  */
+    0,                              /* tp_call */
+    0,                              /* tp_str */
+    PyObject_GenericGetAttr,        /* tp_getattro */
+    0,                              /* tp_setattro */
+    0,                              /* tp_as_buffer */
+    Py_TPFLAGS_DEFAULT,             /* tp_flags */
+    0,                              /* tp_doc */
+    0,                              /* tp_traverse */
+    0,                              /* tp_clear */
+    0,                              /* tp_richcompare */
+    0,                              /* tp_weaklistoffset */
+    IdentityDictItems__iter__,      /* tp_iter */
+};
+
+static PyTypeObject
+IdentityDictValues_type = {
+    PyVarObject_HEAD_INIT(NULL, 0)
+    "IdentityDictValues",           /* tp_name */
+    sizeof(IdentityDictView),       /* tp_basicsize */
+    0,                              /* tp_itemsize */
+    IdentityDictView__del__,        /* tp_dealloc */
+    0,                              /* tp_print */
+    0,                              /* tp_getattr */
+    0,                              /* tp_setattr */
+    0,                              /* tp_reserved */
+    0,                              /* tp_repr */
+    0,                              /* tp_as_number */
+    &IdentityDictValues_as_sequence,/* tp_as_sequence */
+    0,                              /* tp_as_mapping */
+    0,                              /* tp_hash  */
+    0,                              /* tp_call */
+    0,                              /* tp_str */
+    PyObject_GenericGetAttr,        /* tp_getattro */
+    0,                              /* tp_setattro */
+    0,                              /* tp_as_buffer */
+    Py_TPFLAGS_DEFAULT,             /* tp_flags */
+    0,                              /* tp_doc */
+    0,                              /* tp_traverse */
+    0,                              /* tp_clear */
+    0,                              /* tp_richcompare */
+    0,                              /* tp_weaklistoffset */
+    IdentityDictValues__iter__,     /* tp_iter */
 };
 
 /* Module */
@@ -944,6 +1162,8 @@ PyInit__collections(void)
     if (module == NULL)
         return NULL;
 
+    /* IdentityDict */
+
     if (PyType_Ready(&IdentityDict_type) < 0)
         return NULL;
 
@@ -951,12 +1171,41 @@ PyInit__collections(void)
 
     PyModule_AddObject(module, "IdentityDict", (PyObject *)&IdentityDict_type);
 
+    /* IdentityDictIterator */
+
     if (PyType_Ready(&IdentityDictIterator_type) < 0)
         return NULL;
 
     Py_INCREF(&IdentityDictIterator_type);
 
     PyModule_AddObject(module, "_IdentityDictIterator", (PyObject *)&IdentityDictIterator_type);
+
+    /* IdentityDictKeys */
+
+    if (PyType_Ready(&IdentityDictKeys_type) < 0)
+        return NULL;
+
+    Py_INCREF(&IdentityDictKeys_type);
+
+    PyModule_AddObject(module, "_IdentityDictKeys", (PyObject *)&IdentityDictKeys_type);
+
+    /* IdentityDictItems */
+
+    if (PyType_Ready(&IdentityDictItems_type) < 0)
+        return NULL;
+
+    Py_INCREF(&IdentityDictItems_type);
+
+    PyModule_AddObject(module, "_IdentityDictItems", (PyObject *)&IdentityDictItems_type);
+
+    /* IdentityDictValues */
+
+    if (PyType_Ready(&IdentityDictValues_type) < 0)
+        return NULL;
+
+    Py_INCREF(&IdentityDictValues_type);
+
+    PyModule_AddObject(module, "_IdentityDictValues", (PyObject *)&IdentityDictValues_type);
 
     return module;
 };

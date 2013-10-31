@@ -70,3 +70,24 @@ class IdentityDictTests(unittest.TestCase):
         self.assertEqual(d.get(key), 5)
 
         self.assertEqual(d.get(ConstantHash(), 6), 6)
+
+    def test_items(self):
+        LENGTH = 5
+
+        d = IdentityDict()
+
+        reverse_map = {}
+
+        for i in range(LENGTH):
+            key = ConstantHash()
+
+            d[key] = i
+            reverse_map[i] = key
+
+        count = 0
+        for key, value in d.items():
+            count += 1
+
+            self.assertIs(reverse_map[value], key)
+
+        self.assertEqual(count, LENGTH)
