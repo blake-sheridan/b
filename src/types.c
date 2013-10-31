@@ -8,15 +8,15 @@ typedef struct {
     Memoizer *memoizer;
 } LazyProperty;
 
-PyDoc_STRVAR(__doc__,
+PyDoc_STRVAR(LazyProperty__doc__,
 "TODO property __doc__");
 
 extern PyTypeObject MemoizerType;
 
-static LazyProperty *
-__new__(PyTypeObject *type, PyObject *args, PyObject **kwargs)
+static PyObject *
+LazyProperty__new__(PyTypeObject *type, PyObject *args, PyObject **kwargs)
 {
-    LazyProperty *self;
+    PyObject *self;
     PyObject *function;
 
     if (!PyArg_ParseTuple(args, "O", &function))
@@ -29,79 +29,85 @@ __new__(PyTypeObject *type, PyObject *args, PyObject **kwargs)
         return NULL;
     }
 
-    self = (LazyProperty *)type->tp_alloc(type, 0);
+    self = type->tp_alloc(type, 0);
     if (self == NULL)
         return NULL;
 
     Py_INCREF(function);
 
-    self->function = function;
-    self->memoizer = NULL;
+    ((LazyProperty *)self)->function = function;
+    ((LazyProperty *)self)->memoizer = NULL;
 
     return self;
 }
 
 static void
-__del__(LazyProperty *self)
+LazyProperty__del__(PyObject *self)
 {
-    Py_DECREF(self->function);
-    Py_XDECREF(self->memoizer);
+    Py_DECREF(((LazyProperty *)self)->function);
+    Py_XDECREF(((LazyProperty *)self)->memoizer);
 
     Py_TYPE(self)->tp_free(self);
 }
 
 static PyObject *
-__doc__getter(LazyProperty *self)
+LazyProperty__doc__getter(PyObject *self)
 {
-    return PyObject_GetAttrString(self->function, "__doc__");
+    return PyObject_GetAttrString(((LazyProperty *)self)->function, "__doc__");
 }
 
 static PyObject *
-__name__getter(LazyProperty *self)
+LazyProperty__name__getter(PyObject *self)
 {
-    return PyObject_GetAttrString(self->function, "__name__");
+    return PyObject_GetAttrString(((LazyProperty *)self)->function, "__name__");
 }
 
 static PyObject *
-__qualname__getter(LazyProperty *self)
+LazyProperty__qualname__getter(PyObject *self)
 {
-    return PyObject_GetAttrString(self->function, "__qualname__");
+    return PyObject_GetAttrString(((LazyProperty *)self)->function, "__qualname__");
 }
 
 static PyGetSetDef getset[] = {
-    {"__doc__",      (getter)__doc__getter},
-    {"__name__",     (getter)__name__getter},
-    {"__qualname__", (getter)__qualname__getter},
+    {"__doc__",      LazyProperty__doc__getter},
+    {"__name__",     LazyProperty__name__getter},
+    {"__qualname__", LazyProperty__qualname__getter},
     {0}
 };
 
 static PyObject *
-__get__(LazyProperty *self, PyObject *instance, PyObject *owner)
+LazyProperty__get__(PyObject *self, PyObject *instance, PyObject *owner)
 {
+    LazyProperty *this;
+
     if (instance == Py_None || instance == NULL) {
         Py_INCREF(self);
-        return (PyObject *)self;
+        return self;
     }
 
-    if (self->memoizer == NULL) {
-        self->memoizer = Memoizer_new(self->function);
-        if (self->memoizer == NULL)
+    this = (LazyProperty *)self;
+
+    if (this->memoizer == NULL) {
+        this->memoizer = Memoizer_new(this->function);
+        if (this->memoizer == NULL)
             return NULL;
     }
 
-    return Memoizer_get(self->memoizer, instance);
+    return Memoizer_get(this->memoizer, instance);
 }
 
 static int
-__set__(LazyProperty *self, PyObject *instance, PyObject *value)
+LazyProperty__set__(PyObject *self, PyObject *instance, PyObject *value)
 {
-    if (self->memoizer == NULL) {
-        self->memoizer = Memoizer_new(self->function);
-        if (self->memoizer == NULL)
+    LazyProperty *this = (LazyProperty *)self;
+
+    if (this->memoizer == NULL) {
+        this->memoizer = Memoizer_new(this->function);
+        if (this->memoizer == NULL)
             return -1;
     }
 
-    return Memoizer_assign(self->memoizer, instance, value);
+    return Memoizer_assign(this->memoizer, instance, value);
 }
 
 PyTypeObject LazyPropertyType = {
@@ -109,7 +115,7 @@ PyTypeObject LazyPropertyType = {
     "property",                /* tp_name */
     sizeof(LazyProperty),      /* tp_basicsize */
     0,                         /* tp_itemsize */
-    (destructor)__del__,       /* tp_dealloc */
+    LazyProperty__del__,       /* tp_dealloc */
     0,                         /* tp_print */
     0,                         /* tp_getattr */
     0,                         /* tp_setattr */
@@ -125,7 +131,7 @@ PyTypeObject LazyPropertyType = {
     0,                         /* tp_setattro */
     0,                         /* tp_as_buffer */
     Py_TPFLAGS_DEFAULT,        /* tp_flags */
-    __doc__,                   /* tp_doc */
+    LazyProperty__doc__,       /* tp_doc */
     0,                         /* tp_traverse */
     0,                         /* tp_clear */
     0,                         /* tp_richcompare */
@@ -137,12 +143,12 @@ PyTypeObject LazyPropertyType = {
     getset,                    /* tp_getset */
     0,                         /* tp_base */
     0,                         /* tp_dict */
-    (descrgetfunc)__get__,     /* tp_descr_get */
-    (descrsetfunc)__set__,     /* tp_descr_set */
+    LazyProperty__get__,       /* tp_descr_get */
+    LazyProperty__set__,       /* tp_descr_set */
     0,                         /* tp_dictoffset */
     0,                         /* tp_init */
     0,                         /* tp_alloc */
-    (newfunc)__new__,          /* tp_new */
+    LazyProperty__new__,       /* tp_new */
 };
 
 PyDoc_STRVAR(Module__doc__,
