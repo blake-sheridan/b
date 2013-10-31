@@ -63,4 +63,10 @@ class IdentityDictTests(unittest.TestCase):
 
         key = ConstantHash()
 
-        self.assertIs(d.get(key, None))
+        self.assertIs(d.get(key), None)
+
+        d[key] = 5
+
+        self.assertEqual(d.get(key), 5)
+
+        self.assertEqual(d.get(ConstantHash(), 6), 6)

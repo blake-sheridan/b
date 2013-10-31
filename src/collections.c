@@ -414,7 +414,59 @@ static PyObject *
 IdentityDict_get_impl(PyObject *self, PyObject *key, PyObject *default_value)
 /*[clinic checksum: eeb64b68bb6f130ac11a4cbf38dad4932b3be342]*/
 {
-    PyErr_SetString(PyExc_NotImplementedError, "IdentityDict.get");
+    PyObject *value;
+
+    IdentityDict *this = (IdentityDict *)self;
+
+    register size_t i;
+    register size_t perturb;
+    register Entry *entry;
+    register size_t mask;
+
+    Entry *entry_0;
+    Py_hash_t hash;
+
+    entry_0 = (Entry *)&this->entries[0];
+
+    mask = this->size - 1;
+
+    hash = hash_int(key);
+
+    i = hash & mask;
+
+    entry = &entry_0[i];
+
+    if (entry->key == key) {
+        value = entry->value;
+        Py_INCREF(value);
+        return value;
+    }
+
+    if (entry->key == NULL) {
+        value = default_value == NULL ? Py_None : default_value;
+        Py_INCREF(value);
+        return value;
+    }
+
+    for (perturb = hash; ; perturb >>= PERTURB_SHIFT) {
+        i = (i << 2) + i + perturb + 1;
+
+        entry = &entry_0[i & mask];
+
+        if (entry->key == key) {
+            value = entry->value;
+            Py_INCREF(value);
+            return value;
+        }
+
+        if (entry->key == NULL) {
+            value = default_value == NULL ? Py_None : default_value;
+            Py_INCREF(value);
+            return value;
+        }
+    }
+
+    assert(0);
     return NULL;
 }
 
@@ -622,7 +674,7 @@ IdentityDict_values(PyObject *self)
 
 /* Manually for now, as this one's too out there for argument clinic. */
 #define IDENTITYDICT_UPDATE_METHODDEF    \
-    {"update", (PyCFunction)IdentityDict_values, METH_VARARGS|METH_KEYWORDS, "TODO"},
+    {"update", (PyCFunction)IdentityDict_update, METH_VARARGS|METH_KEYWORDS, "TODO"},
 
 static PyObject *
 IdentityDict_update(PyObject *self, PyObject *args, PyObject *kwargs)
