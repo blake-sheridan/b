@@ -1,16 +1,16 @@
 import unittest
 
-import lazy
+from b.types import Memoizer
 
 class MemoizerTests(unittest.TestCase):
     def test_new(self):
-        lazy.Memoizer(str)
+        Memoizer(str)
 
         with self.assertRaises(TypeError):
-            lazy.Memoizer("asdf")
+            Memoizer("asdf")
 
         with self.assertRaises(TypeError):
-            lazy.Memoizer(abc=123)
+            Memoizer(abc=123)
 
     def test_getitem(self):
         count = 0
@@ -20,7 +20,7 @@ class MemoizerTests(unittest.TestCase):
             count += 1
             return x + 2
 
-        m = lazy.Memoizer(plus_two)
+        m = Memoizer(plus_two)
 
         self.assertEqual(m[5], 7)
         self.assertEqual(m[5], 7)
@@ -42,7 +42,7 @@ class MemoizerTests(unittest.TestCase):
         def make_item(_):
             return Item()
 
-        m = lazy.Memoizer(make_item)
+        m = Memoizer(make_item)
 
         m[1]
         m[2]
@@ -58,7 +58,7 @@ class MemoizerTests(unittest.TestCase):
         def plus_two(x):
             return x + 2
 
-        m = lazy.Memoizer(plus_two)
+        m = Memoizer(plus_two)
 
         m[1]
         m[2]
@@ -70,7 +70,7 @@ class MemoizerTests(unittest.TestCase):
         def plus_two(x):
             return x + 2
 
-        m = lazy.Memoizer(plus_two)
+        m = Memoizer(plus_two)
 
         m[1]
         m[2]
@@ -85,7 +85,7 @@ class MemoizerTests(unittest.TestCase):
         def plus_two(x):
             return x + 2
 
-        m = lazy.Memoizer(plus_two)
+        m = Memoizer(plus_two)
 
         self.assertEqual(m[2], 4)
 
@@ -101,7 +101,7 @@ class MemoizerTests(unittest.TestCase):
             count += 1
             return x + 2
 
-        m = lazy.Memoizer(plus_two)
+        m = Memoizer(plus_two)
 
         for i in range(64):
             m[i]
@@ -125,7 +125,7 @@ class MemoizerTests(unittest.TestCase):
         def plus_two(x):
             return x + 2
 
-        m = lazy.Memoizer(plus_two)
+        m = Memoizer(plus_two)
 
         self.assertNotIn(2, m)
 
@@ -153,7 +153,7 @@ class MemoizerTests(unittest.TestCase):
         def new_a(_):
             return A()
 
-        m = lazy.Memoizer(new_a)
+        m = Memoizer(new_a)
 
         objects = [object() for i in range(10)]
 

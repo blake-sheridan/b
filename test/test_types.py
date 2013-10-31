@@ -1,18 +1,18 @@
 import unittest
 
-import lazy
+from b.types import lazyproperty
 
 class A:
     def __init__(self, x):
         self.x = x
 
-    @lazy.property
+    @lazyproperty
     def plus_two(self):
         """add two!"""
         self.x += 2
         return self.x
 
-    @lazy.property
+    @lazyproperty
     def __private(self):
         self.x += 2
         return self.x
@@ -75,7 +75,7 @@ class LazyPropertyTests(unittest.TestCase):
                 nonlocal deletions
                 deletions += 1
 
-            @lazy.property
+            @lazyproperty
             def x(self):
                 return 5
 

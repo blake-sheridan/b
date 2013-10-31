@@ -8,7 +8,13 @@ setup(
     description = 'Lazy',
     ext_modules = [
         Extension(
-            name = '_lazy',
+            name = 'b._collections',
+            sources = [
+                'src/collections.c',
+            ],
+        ),
+        Extension(
+            name = 'b._types',
             depends = [
                 'include/memoizer.h',
                 ],
@@ -16,16 +22,9 @@ setup(
                 'include',
             ],
             sources = [
-                'src/__init__.c',
                 'src/memoizer.c',
-                'src/property.c',
+                'src/types.c',
             ],
         ),
-        Extension(
-            name = 'b._collections',
-            sources = [
-                'src/collections.c',
-            ],
-        )
     ],
 )
