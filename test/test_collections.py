@@ -71,7 +71,25 @@ class IdentityDictTests(unittest.TestCase):
 
         self.assertEqual(d.get(ConstantHash(), 6), 6)
 
-    def test_items(self):
+    def test_keys_iter(self):
+        LENGTH = 5
+
+        d = IdentityDict()
+
+        for i in range(LENGTH):
+            d[ConstantHash()] = i
+
+        # Same code as __iter__, really,
+        # both here and in the implementation.
+
+        count = 0
+        for key in d.keys():
+            count += 1
+            self.assertIsInstance(key, ConstantHash)
+
+        self.assertEqual(count, LENGTH)
+
+    def test_items_iter(self):
         LENGTH = 5
 
         d = IdentityDict()
@@ -89,5 +107,26 @@ class IdentityDictTests(unittest.TestCase):
             count += 1
 
             self.assertIs(reverse_map[value], key)
+
+        self.assertEqual(count, LENGTH)
+
+    def test_values_iter(self):
+        LENGTH = 5
+
+        d = IdentityDict()
+
+        reverse_map = {}
+
+        for i in range(LENGTH):
+            key = ConstantHash()
+
+            d[key] = i
+            reverse_map[i] = key
+
+        count = 0
+        for value in d.values():
+            count += 1
+
+            del reverse_map[value] # Failure if this KeyErrors
 
         self.assertEqual(count, LENGTH)
