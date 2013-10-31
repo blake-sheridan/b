@@ -27,7 +27,7 @@ static PyTypeObject IdentityDictValues_type;
 
 static PyTypeObject IdentityDictKeysIterator_type;
 static PyTypeObject IdentityDictItemsIterator_type;
-static PyTypeObject IdentityDictValueIterator_type;
+static PyTypeObject IdentityDictValuesIterator_type;
 
 static PyObject * IdentityDictIterator_new(PyTypeObject *type, IdentityDict *dict);
 static PyObject * IdentityDictView_new(PyTypeObject *type, IdentityDict *dict);
