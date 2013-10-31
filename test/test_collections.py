@@ -153,3 +153,25 @@ class IdentityDictTests(unittest.TestCase):
 
         self.assertEqual(deletions, LENGTH)
         self.assertEqual(len(d), 0)
+
+    def test_pop(self):
+        LENGTH = 5
+
+        d = IdentityDict()
+        keys = []
+
+        for i in range(LENGTH):
+            key = ConstantHash()
+
+            d[key] = i
+            keys.append(key)
+
+        self.assertEqual(d.pop(keys[2]), 2)
+        self.assertEqual(d.pop(keys[4]), 4)
+
+        self.assertEqual(len(d), LENGTH - 2)
+
+        self.assertEqual(d.pop('not in there, bro', 'but ok'), 'but ok')
+
+        with self.assertRaises(KeyError):
+            d.pop('no fallback!!!!!')

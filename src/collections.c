@@ -574,8 +574,66 @@ static PyObject *
 IdentityDict_pop_impl(PyObject *self, PyObject *key, PyObject *default_value)
 /*[clinic checksum: 32e484b32203c8ffdaed3eee54d29c8889d30432]*/
 {
-    PyErr_SetString(PyExc_NotImplementedError, "IdentityDict.pop");
-    return NULL;
+    IdentityDict *this = (IdentityDict *)self;
+
+    PyObject *value;
+
+    register size_t i;
+    register size_t perturb;
+    register size_t mask;
+    register Entry *entry;
+    Entry *entry_0; // register-ing this slows by 33%
+    Py_hash_t hash;
+
+    entry_0 = (Entry *)&this->entries[0];
+
+    mask = this->size - 1;
+
+    hash = hash_int(key);
+
+    i = hash & mask;
+
+    entry = &entry_0[i];
+
+    if (entry->key == key)
+        goto found;
+
+    if (entry->key == NULL)
+        goto missing;
+
+    for (perturb = hash; ; perturb >>= PERTURB_SHIFT) {
+        i = (i << 2) + i + perturb + 1;
+
+        entry = &entry_0[i & mask];
+
+        if (entry->key == key)
+            goto found;
+
+        if (entry->key == NULL)
+            goto missing;
+    }
+
+  found:
+    value = entry->value;
+
+    Py_DECREF(key);
+
+    entry->key = NULL;
+    entry->value = NULL;
+
+    this->usable++;
+
+    return value;
+
+  missing:
+    if (default_value == NULL) {
+        /* Implementation detail, probably? */
+        _PyErr_SetKeyError(key);
+        return NULL;
+    } else {
+        Py_INCREF(default_value);
+        return default_value;
+    }
 }
 
 /*[clinic]
