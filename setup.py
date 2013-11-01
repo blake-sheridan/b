@@ -19,6 +19,12 @@ setup(
             ],
         ),
         Extension(
+            name = 'b._functools',
+            sources = [
+                'src/functools.c',
+            ],
+        ),
+        Extension(
             name = 'b._types',
             depends = [
                 'include/memoizer.h',
