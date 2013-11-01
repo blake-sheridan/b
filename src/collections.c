@@ -54,23 +54,20 @@ PyDoc_STRVAR(IdentityDict__doc__,
 static PyObject *
 IdentityDict__new__(PyTypeObject *type, PyObject *args, PyObject **kwargs)
 {
-    PyObject *self;
-    Py_ssize_t size = INITIAL_SIZE;
-    Py_ssize_t i;
-
-    Entry (*entries)[1];
-    Entry *entry_0;
-
-    self = type->tp_alloc(type, 0);
+    PyObject *self = type->tp_alloc(type, 0);
     if (self == NULL)
         return NULL;
+
+    Py_ssize_t size = INITIAL_SIZE;
+    Entry (*entries)[1];
 
     entries = PyMem_Malloc(size * sizeof(Entry));
     if (entries == NULL)
         return NULL;
 
-    entry_0 = (Entry *)&entries[0];
+    Entry *entry_0 = (Entry *)&entries[0];
 
+    Py_ssize_t i;
     for (i = 0; i < size; i++) {
         entry_0[i].key = NULL;
         entry_0[i].value = NULL;
@@ -906,9 +903,7 @@ typedef struct {
 static PyObject *
 IdentityDictIterator_new(PyTypeObject *type, IdentityDict *dict)
 {
-    IdentityDictIterator *this;
-
-    this = PyObject_New(IdentityDictIterator, type);
+    IdentityDictIterator *this = PyObject_New(IdentityDictIterator, type);
     if (this == NULL)
         return NULL;
 
@@ -951,14 +946,14 @@ IdentityDictKeysIterator__next__(PyObject *self)
 {
     IdentityDictIterator *this = (IdentityDictIterator *)self;
     IdentityDict *dict = this->dict;
-    Py_ssize_t i, size;
-    Entry *entry_0;
-    PyObject *key;
 
     if (dict == NULL)
         return NULL;
 
-    entry_0 = (Entry *)&dict->entries[0];
+    Entry *entry_0 = (Entry *)&dict->entries[0];
+    Py_ssize_t i, size;
+
+    PyObject *key;
 
     for (i = this->index, size = dict->size; i < size; i++) {
         key = entry_0[i].key;
@@ -981,14 +976,14 @@ IdentityDictItemsIterator__next__(PyObject *self)
 {
     IdentityDictIterator *this = (IdentityDictIterator *)self;
     IdentityDict *dict = this->dict;
-    Py_ssize_t i, size;
-    Entry *entry_0;
-    PyObject *key, *item, *value;
 
     if (dict == NULL)
         return NULL;
 
-    entry_0 = (Entry *)&dict->entries[0];
+    Entry *entry_0 = (Entry *)&dict->entries[0];
+    Py_ssize_t i, size;
+
+    PyObject *key, *item, *value;
 
     for (i = this->index, size = dict->size; i < size; i++) {
         key = entry_0[i].key;
@@ -1024,14 +1019,14 @@ IdentityDictValuesIterator__next__(PyObject *self)
 {
     IdentityDictIterator *this = (IdentityDictIterator *)self;
     IdentityDict *dict = this->dict;
-    Py_ssize_t i, size;
-    Entry *entry_0;
-    PyObject *key, *value;
 
     if (dict == NULL)
         return NULL;
 
-    entry_0 = (Entry *)&dict->entries[0];
+    Entry *entry_0 = (Entry *)&dict->entries[0];
+    Py_ssize_t i, size;
+
+    PyObject *key, *value;
 
     for (i = this->index, size = dict->size; i < size; i++) {
         key = entry_0[i].key;
@@ -1165,9 +1160,7 @@ typedef struct {
 static PyObject *
 IdentityDictView_new(PyTypeObject *type, IdentityDict *dict)
 {
-    IdentityDictView *this;
-
-    this = PyObject_New(IdentityDictView, type);
+    IdentityDictView *this = PyObject_New(IdentityDictView, type);
     if (this == NULL)
         return NULL;
 

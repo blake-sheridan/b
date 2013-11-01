@@ -16,7 +16,6 @@ extern PyTypeObject MemoizerType;
 static PyObject *
 LazyProperty__new__(PyTypeObject *type, PyObject *args, PyObject **kwargs)
 {
-    PyObject *self;
     PyObject *function;
 
     if (!PyArg_ParseTuple(args, "O", &function))
@@ -29,7 +28,7 @@ LazyProperty__new__(PyTypeObject *type, PyObject *args, PyObject **kwargs)
         return NULL;
     }
 
-    self = type->tp_alloc(type, 0);
+    PyObject *self = type->tp_alloc(type, 0);
     if (self == NULL)
         return NULL;
 
@@ -78,14 +77,12 @@ static PyGetSetDef getset[] = {
 static PyObject *
 LazyProperty__get__(PyObject *self, PyObject *instance, PyObject *owner)
 {
-    LazyProperty *this;
-
     if (instance == Py_None || instance == NULL) {
         Py_INCREF(self);
         return self;
     }
 
-    this = (LazyProperty *)self;
+    LazyProperty *this = (LazyProperty *)self;
 
     if (this->memoizer == NULL) {
         this->memoizer = Memoizer_new(this->function);
