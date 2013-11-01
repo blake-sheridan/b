@@ -25,6 +25,12 @@ setup(
             ],
         ),
         Extension(
+            name = 'b._operator',
+            sources = [
+                'src/operator.c',
+            ],
+        ),
+        Extension(
             name = 'b._types',
             depends = [
                 'include/memoizer.h',
