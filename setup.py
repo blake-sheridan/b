@@ -2,6 +2,11 @@
 
 from distutils.core import setup, Extension
 
+# Workaround -Werror=statement-after-declaration
+# http://bugs.python.org/issue18211
+import os
+os.environ['CFLAGS'] = '-Wno-unused-result'
+
 setup(
     name = 'lazy',
     version = '1.0',
@@ -17,7 +22,7 @@ setup(
             name = 'b._types',
             depends = [
                 'include/memoizer.h',
-                ],
+            ],
             include_dirs = [
                 'include',
             ],
