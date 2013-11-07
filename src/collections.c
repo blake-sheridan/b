@@ -52,7 +52,7 @@ PyDoc_STRVAR(IdentityDict__doc__,
 "TODO IdentityDict.__doc__");
 
 static PyObject *
-IdentityDict__new__(PyTypeObject *type, PyObject *args, PyObject **kwargs)
+IdentityDict__new__(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
     PyObject *self = type->tp_alloc(type, 0);
     if (self == NULL)
@@ -923,7 +923,7 @@ IdentityDictIterator__del__(PyObject *self)
 }
 
 static PyObject *
-IdentityDictIterator__length_hint__(PyObject *self)
+IdentityDictIterator__length_hint__(PyObject *self, PyObject *args)
 {
     IdentityDictIterator *this = (IdentityDictIterator *)self;
     IdentityDict *dict = this->dict;
@@ -1186,25 +1186,25 @@ IdentityDictView__len__(PyObject *self)
 
 /* View __contains__ */
 
-static PyObject *
+static int
 IdentityDictKeys__contains__(PyObject *self, PyObject *key)
 {
     PyErr_SetString(PyExc_NotImplementedError, "IdentityDictKeys.__contains__");
-    return NULL;
+    return -1;
 }
 
-static PyObject *
+static int
 IdentityDictItems__contains__(PyObject *self, PyObject *key)
 {
     PyErr_SetString(PyExc_NotImplementedError, "IdentityDictItems.__contains__");
-    return NULL;
+    return -1;
 }
 
-static PyObject *
+static int
 IdentityDictValues__contains__(PyObject *self, PyObject *key)
 {
     PyErr_SetString(PyExc_NotImplementedError, "IdentityDictValues.__contains__");
-    return NULL;
+    return -1;
 }
 
 /* View __iter__ */
@@ -1214,7 +1214,7 @@ IdentityDictKeys__iter__(PyObject *self)
 {
     return IdentityDictIterator_new(
         &IdentityDictKeysIterator_type,
-        (PyObject *)((IdentityDictView *)self)->dict
+        ((IdentityDictView *)self)->dict
         );
 }
 
@@ -1224,7 +1224,7 @@ IdentityDictItems__iter__(PyObject *self)
 {
     return IdentityDictIterator_new(
         &IdentityDictItemsIterator_type,
-        (PyObject *)((IdentityDictView *)self)->dict
+        ((IdentityDictView *)self)->dict
         );
 }
 
@@ -1234,7 +1234,7 @@ IdentityDictValues__iter__(PyObject *self)
 {
     return IdentityDictIterator_new(
         &IdentityDictValuesIterator_type,
-        (PyObject *)((IdentityDictView *)self)->dict
+        ((IdentityDictView *)self)->dict
         );
 }
 
