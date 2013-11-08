@@ -1728,7 +1728,6 @@ NamedTupleMeta__new__(PyTypeObject *mcs, PyObject *args, PyObject *kwargs)
         return NULL;
     }
 
-    PyObject *name      = PyTuple_GET_ITEM(args, 0);
     PyObject *bases     = PyTuple_GET_ITEM(args, 1);
     PyObject *namespace = PyTuple_GET_ITEM(args, 2);
 
