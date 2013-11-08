@@ -204,7 +204,6 @@ class NamedTupleMetaTests(unittest.TestCase):
 
         self.assertEqual(len(A), 2)
 
-    @unittest.expectedFailure
     def test_getitem(self):
         class A(NamedTuple):
             x = __(str)

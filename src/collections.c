@@ -1800,15 +1800,16 @@ NamedTupleMeta__len__(PyObject *cls)
 static PyObject *
 NamedTupleMeta__getitem__(PyObject *cls, Py_ssize_t index)
 {
-    Py_ssize_t num_fields = ((NamedTupleMeta *)cls)->num_fields;
+    NamedTupleMeta *this = (NamedTupleMeta *)cls;
 
-    if (index < 0 || index >= num_fields) {
+    if (index < 0 || index >= this->num_fields) {
         PyErr_SetString(PyExc_IndexError, "NamedTupleMeta index out of range");
         return NULL;
     }
 
-    PyErr_SetString(PyExc_NotImplementedError, "NamedTupleMeta.__iter__");
-    return NULL;
+    PyObject *field = PyTuple_GET_ITEM(this->fields, index);
+    Py_INCREF(field);
+    return field;
 }
 
 static PyObject *
