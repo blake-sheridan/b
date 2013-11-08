@@ -1925,8 +1925,88 @@ NamedTuple__new__(PyTypeObject *cls, PyObject *args, PyObject *kwargs)
 static PyObject *
 NamedTuple__repr__(PyObject *self)
 {
-    PyErr_SetString(PyExc_NotImplementedError, "NamedTuple.__repr__");
-    return NULL;
+    PyObject *retval = NULL;
+
+    PyObject *buffer = PyUnicode_New(512, 255);
+    if (buffer == NULL)
+        return NULL;
+
+    PyTypeObject *cls = Py_TYPE(self);
+
+    PyObject *s = ((PyHeapTypeObject *)cls)->ht_qualname;
+    Py_ssize_t s_length = PyUnicode_GET_LENGTH(s);
+
+    if (PyUnicode_CopyCharacters(buffer, 0, s, 0, s_length) == -1)
+        goto bail;
+
+    Py_ssize_t i = s_length;
+
+    if (PyUnicode_WriteChar(buffer, i++, '(') == -1)
+        goto bail;
+
+    PyObject *fields      = ((NamedTupleMeta *)cls)->fields;
+    Py_ssize_t num_fields = ((NamedTupleMeta *)cls)->num_fields;
+
+    int first = 1;
+
+    NamedTupleField *field;
+    PyObject *value;
+
+    int field_index;
+    for (field_index = 0; field_index < num_fields; field_index++) {
+        field = (NamedTupleField *)PyTuple_GET_ITEM(fields, field_index);
+        value = PyTuple_GET_ITEM(self, field_index);
+
+        if (value == field->default_)
+            continue;
+
+        if (first) {
+            first = 0;
+        } else {
+            if (PyUnicode_WriteChar(buffer, i++, ',') == -1)
+                goto bail;
+            if (PyUnicode_WriteChar(buffer, i++, ' ') == -1)
+                goto bail;
+        }
+
+        s = field->name;
+        s_length = PyUnicode_GET_LENGTH(s);
+
+        if (PyUnicode_CopyCharacters(buffer, i, s, 0, s_length) == -1)
+            goto bail;
+
+        i += s_length;
+
+        if (PyUnicode_WriteChar(buffer, i++, '=') == -1)
+            goto bail;
+
+        if (Py_EnterRecursiveCall(" while getting the repr of a NamedTuple"))
+            goto bail;
+        s = PyObject_Repr(value);
+        Py_LeaveRecursiveCall();
+
+        if (s == NULL)
+            goto bail;
+
+        s_length = PyUnicode_GET_LENGTH(s);
+
+        if (PyUnicode_CopyCharacters(buffer, i, s, 0, s_length) == -1) {
+            Py_DECREF(s);
+            goto bail;
+        } else {
+            Py_DECREF(s);
+        }
+
+        i += s_length;
+    }
+
+    if (PyUnicode_WriteChar(buffer, i++, ')') == -1)
+        goto bail;
+
+    retval = PyUnicode_Substring(buffer, 0, i);
+  bail:
+    Py_DECREF(buffer);
+    return retval;
 }
 
 static PyTypeObject
