@@ -1815,8 +1815,7 @@ NamedTupleMeta__getitem__(PyObject *cls, Py_ssize_t index)
 static PyObject *
 NamedTupleMeta__iter__(PyObject *cls)
 {
-    PyErr_SetString(PyExc_NotImplementedError, "NamedTupleMeta.__iter__");
-    return NULL;
+    return PyObject_GetIter(((NamedTupleMeta *)cls)->fields);
 }
 
 static PySequenceMethods

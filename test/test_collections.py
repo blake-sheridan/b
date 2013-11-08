@@ -212,7 +212,6 @@ class NamedTupleMetaTests(unittest.TestCase):
         self.assertIs(A[0], A.x)
         self.assertIs(A[1], A.y)
 
-    @unittest.expectedFailure
     def test_iter(self):
         class A(NamedTuple):
             x = __(str)
