@@ -1728,25 +1728,9 @@ NamedTupleMeta__new__(PyTypeObject *mcs, PyObject *args, PyObject *kwargs)
         return NULL;
     }
 
-    PyObject *bases     = PyTuple_GET_ITEM(args, 1);
     PyObject *namespace = PyTuple_GET_ITEM(args, 2);
 
     /* Sanity */
-
-    if (!PyTuple_CheckExact(bases)) {
-        PyErr_SetString(PyExc_TypeError, "NamedTupleMeta: expecting tuple of bases");
-        return NULL;
-    }
-
-    if (PyTuple_GET_SIZE(bases) != 1) {
-        PyErr_SetString(PyExc_NotImplementedError, "NamedTupleMeta: multiple inheritance");
-        return NULL;
-    }
-
-    if (PyTuple_GET_ITEM(bases, 0) != (PyObject *)&NamedTuple_type) {
-        PyErr_SetString(PyExc_NotImplementedError, "NamedTupleMeta: asdf");
-        return NULL;
-    }
 
     if (Py_TYPE(namespace) != &NamedTupleNamespace_type) {
         PyErr_SetString(PyExc_TypeError, "NamedTupleMeta: expecting custom namespace");
