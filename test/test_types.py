@@ -1,6 +1,6 @@
 import unittest
 
-from b.types import lazyproperty, StructSequence
+from b.types import lazyproperty, NamedTuple
 
 class A:
     def __init__(self, x):
@@ -88,18 +88,14 @@ class LazyPropertyTests(unittest.TestCase):
 
         self.assertEqual(deletions, 10)
 
-class StructSequenceMetaTests(unittest.TestCase):
-    def test_new_noop(self):
-        class A(StructSequence):
-            pass
-
+class NamedTupleMetaTests(unittest.TestCase):
     def test_new(self):
-        class A(StructSequence):
+        class A(NamedTuple):
             x = __(str)
             y = __(str)
 
     def test_len(self):
-        class A(StructSequence):
+        class A(NamedTuple):
             x = __(str)
             y = __(str)
 
@@ -107,7 +103,7 @@ class StructSequenceMetaTests(unittest.TestCase):
 
     @unittest.expectedFailure
     def test_getitem(self):
-        class A(StructSequence):
+        class A(NamedTuple):
             x = __(str)
             y = __(str)
 
@@ -116,7 +112,7 @@ class StructSequenceMetaTests(unittest.TestCase):
 
     @unittest.expectedFailure
     def test_iter(self):
-        class A(StructSequence):
+        class A(NamedTuple):
             x = __(str)
             y = __(str)
 
@@ -128,9 +124,9 @@ class StructSequenceMetaTests(unittest.TestCase):
             else:
                 self.fail()
 
-class StructSequenceFieldTests(unittest.TestCase):
+class NamedTupleFieldTests(unittest.TestCase):
     def test_doc(self):
-        class A(StructSequence):
+        class A(NamedTuple):
             x = __(str, doc='Stuff about x')
             y = __(str)
 
@@ -138,7 +134,7 @@ class StructSequenceFieldTests(unittest.TestCase):
         self.assertEqual(A.y.__doc__, None)
 
     def test_name(self):
-        class A(StructSequence):
+        class A(NamedTuple):
             x = __(str, doc='Stuff about x')
             y = __(str)
 
@@ -146,15 +142,15 @@ class StructSequenceFieldTests(unittest.TestCase):
         self.assertEqual(A.y.__name__, 'y')
 
     def test_qualname(self):
-        class A(StructSequence):
+        class A(NamedTuple):
             x = __(str, doc='Stuff about x')
             y = __(str)
 
-        self.assertEqual(A.x.__qualname__, 'StructSequenceFieldTests.test_qualname.<locals>.A.x')
-        self.assertEqual(A.y.__qualname__, 'StructSequenceFieldTests.test_qualname.<locals>.A.y')
+        self.assertEqual(A.x.__qualname__, 'NamedTupleFieldTests.test_qualname.<locals>.A.x')
+        self.assertEqual(A.y.__qualname__, 'NamedTupleFieldTests.test_qualname.<locals>.A.y')
 
     def test_get(self):
-        class A(StructSequence):
+        class A(NamedTuple):
             x = __(str, doc='Stuff about x')
             y = __(str)
 
@@ -163,16 +159,16 @@ class StructSequenceFieldTests(unittest.TestCase):
         self.assertEqual(a.x, "Hello")
         self.assertEqual(a.y, "world!")
 
-class StructSequenceTests(unittest.TestCase):
+class NamedTupleTests(unittest.TestCase):
     def test_new(self):
-        class A(StructSequence):
+        class A(NamedTuple):
             x = __(str, doc='Stuff about x')
             y = __(str)
 
         a = A("Hello", "world!")
 
     def test_getitem(self):
-        class A(StructSequence):
+        class A(NamedTuple):
             x = __(str, doc='Stuff about x')
             y = __(str)
 
@@ -182,7 +178,7 @@ class StructSequenceTests(unittest.TestCase):
         self.assertEqual(a[1], "world!")
 
     def test_len(self):
-        class A(StructSequence):
+        class A(NamedTuple):
             x = __(str, doc='Stuff about x')
             y = __(str)
 
@@ -191,7 +187,7 @@ class StructSequenceTests(unittest.TestCase):
         self.assertEqual(len(a), 2)
 
     def test_iter(self):
-        class A(StructSequence):
+        class A(NamedTuple):
             x = __(str, doc='Stuff about x')
             y = __(str)
 
