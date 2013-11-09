@@ -109,7 +109,7 @@ LazyProperty__set__(PyObject *self, PyObject *instance, PyObject *value)
 
 PyTypeObject LazyPropertyType = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    "property",                /* tp_name */
+    "b._types.lazyproperty",   /* tp_name */
     sizeof(LazyProperty),      /* tp_basicsize */
     0,                         /* tp_itemsize */
     LazyProperty__del__,       /* tp_dealloc */

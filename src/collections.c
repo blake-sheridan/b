@@ -853,7 +853,7 @@ IdentityDict_as_sequence = {
 static PyTypeObject
 IdentityDict_type = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    "IdentityDict",            /* tp_name */
+    "b._collections.IdentityDict", /* tp_name */
     sizeof(IdentityDict),      /* tp_basicsize */
     0,                         /* tp_itemsize */
     IdentityDict__del__,       /* tp_dealloc */
@@ -1057,7 +1057,7 @@ IdentityDictIterator_methods[] = {
 static PyTypeObject
 IdentityDictKeysIterator_type = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    "IdentityDictKeysIterator",         /* tp_name */
+    "b._collections.IdentityDictKeysIterator", /* tp_name */
     sizeof(IdentityDictIterator),       /* tp_basicsize */
     0,                                  /* tp_itemsize */
     IdentityDictIterator__del__,        /* tp_dealloc */
@@ -1089,7 +1089,7 @@ IdentityDictKeysIterator_type = {
 static PyTypeObject
 IdentityDictItemsIterator_type = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    "IdentityDictItemsIterator",        /* tp_name */
+    "b._collections.IdentityDictItemsIterator", /* tp_name */
     sizeof(IdentityDictIterator),       /* tp_basicsize */
     0,                                  /* tp_itemsize */
     IdentityDictIterator__del__,        /* tp_dealloc */
@@ -1121,7 +1121,7 @@ IdentityDictItemsIterator_type = {
 static PyTypeObject
 IdentityDictValuesIterator_type = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    "IdentityDictValuesIterator",       /* tp_name */
+    "b._collections.IdentityDictValuesIterator", /* tp_name */
     sizeof(IdentityDictIterator),       /* tp_basicsize */
     0,                                  /* tp_itemsize */
     IdentityDictIterator__del__,        /* tp_dealloc */
@@ -1281,7 +1281,7 @@ IdentityDictValues_as_sequence = {
 static PyTypeObject
 IdentityDictKeys_type = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    "IdentityDictKeys",             /* tp_name */
+    "b._collections.IdentityDictKeys", /* tp_name */
     sizeof(IdentityDictView),       /* tp_basicsize */
     0,                              /* tp_itemsize */
     IdentityDictView__del__,        /* tp_dealloc */
@@ -1311,7 +1311,7 @@ IdentityDictKeys_type = {
 static PyTypeObject
 IdentityDictItems_type = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    "IdentityDictItems",            /* tp_name */
+    "b._collections.IdentityDictItems", /* tp_name */
     sizeof(IdentityDictView),       /* tp_basicsize */
     0,                              /* tp_itemsize */
     IdentityDictView__del__,        /* tp_dealloc */
@@ -1341,7 +1341,7 @@ IdentityDictItems_type = {
 static PyTypeObject
 IdentityDictValues_type = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    "IdentityDictValues",           /* tp_name */
+    "b._collections.IdentityDictValues", /* tp_name */
     sizeof(IdentityDictView),       /* tp_basicsize */
     0,                              /* tp_itemsize */
     IdentityDictView__del__,        /* tp_dealloc */
@@ -1544,7 +1544,7 @@ NamedTupleField_getset[] = {
 static PyTypeObject
 NamedTupleField_type = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    "b.types.NamedTupleField",      /* tp_name */
+    "b._collections.NamedTupleField", /* tp_name */
     sizeof(NamedTupleField),        /* tp_basicsize */
     0,                              /* tp_itemsize */
     NamedTupleField__del__,         /* tp_dealloc */
@@ -1647,7 +1647,7 @@ NamedTupleNamespace_as_mapping = {
 static PyTypeObject
 NamedTupleNamespace_type = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    "b.types.NamedTupleNamespace",       /* tp_name */
+    "b._collections.NamedTupleNamespace", /* tp_name */
     sizeof(NamedTupleNamespace),         /* tp_basicsize */
     0,                                   /* tp_itemsize */
     NamedTupleNamespace__del__,          /* tp_dealloc */
@@ -1822,7 +1822,7 @@ NamedTupleMeta_methods[] = {
 static PyTypeObject
 NamedTupleMeta_type = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    "b.types.NamedTupleMeta",       /* tp_name */
+    "b._collections.NamedTupleMeta", /* tp_name */
     sizeof(NamedTupleMeta),         /* tp_basicsize */
     0,                              /* tp_itemsize */
     0,                              /* tp_dealloc */
@@ -2036,7 +2036,7 @@ NamedTuple__repr__(PyObject *self)
 static PyTypeObject
 NamedTuple_type = {
     PyVarObject_HEAD_INIT(&NamedTupleMeta_type, 0)
-    "b.types.NamedTuple",           /* tp_name */
+    "b._collections.NamedTuple",    /* tp_name */
     0,                              /* tp_basicsize */
     0,                              /* tp_itemsize */
     0,                              /* tp_dealloc */

@@ -422,7 +422,7 @@ static PyMethodDef methods[] = {
 
 PyTypeObject MemoizerType = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    "Memoizer",                /* tp_name */
+    "b._types.Memoizer",       /* tp_name */
     sizeof(Memoizer),          /* tp_basicsize */
     0,                         /* tp_itemsize */
     (destructor)__del__,       /* tp_dealloc */

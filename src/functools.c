@@ -21,7 +21,7 @@ Identity__call__(PyObject *self, PyObject *args, PyObject *kwargs)
 
 static PyTypeObject Identity_type = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    "Identity",                /* tp_name */
+    "b._functools.Identity",   /* tp_name */
     sizeof(PyObject),          /* tp_basicsize */
     0,                         /* tp_itemsize */
     0,                         /* tp_dealloc */
@@ -57,7 +57,7 @@ Noop__call__(PyObject *self, PyObject *args, PyObject *kwargs)
 
 static PyTypeObject Noop_type = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    "Noop",                    /* tp_name */
+    "b._functools.Noop",       /* tp_name */
     sizeof(PyObject),          /* tp_basicsize */
     0,                         /* tp_itemsize */
     0,                         /* tp_dealloc */

@@ -63,7 +63,7 @@ ExceptionRaiser__call__(PyObject *self, PyObject *args, PyObject *kwargs)
 
 static PyTypeObject ExceptionRaiser_type = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    "ExceptionRaiser",         /* tp_name */
+    "b._operator.ExceptionRaiser", /* tp_name */
     sizeof(ExceptionRaiser),   /* tp_basicsize */
     0,                         /* tp_itemsize */
     ExceptionRaiser__del__,    /* tp_dealloc */
@@ -125,7 +125,7 @@ PyInit__operator(void)
 
     Py_INCREF(&ExceptionRaiser_type);
 
-    PyModule_AddObject(module, ExceptionRaiser_type.tp_name, (PyObject *)&ExceptionRaiser_type);
+    PyModule_AddObject(module, "ExceptionRaiser", (PyObject *)&ExceptionRaiser_type);
 
     return module;
 };
