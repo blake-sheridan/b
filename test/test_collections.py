@@ -308,3 +308,41 @@ class NamedTupleTests(unittest.TestCase):
 
         self.assertIn('A', r)
         self.assertIn('x=', r)
+
+    def test_new_kwargs(self):
+        class A(NamedTuple):
+            x = __(str, doc='Stuff about x')
+            y = __(str)
+
+        self.assertEqual(("Hello", "world!"), A(x="Hello", y="world!"))
+
+    def test_new_args_kwargs(self):
+        class A(NamedTuple):
+            x = __(str, doc='Stuff about x')
+            y = __(str)
+
+        self.assertEqual(("Hello", "world!"), A("Hello", y="world!"))
+
+    def test_new_extra_args(self):
+        class A(NamedTuple):
+            x = __(str, doc='Stuff about x')
+            y = __(str)
+
+        with self.assertRaises(TypeError):
+            A("too", "many", "bro")
+
+    def test_new_missing_args(self):
+        class A(NamedTuple):
+            x = __(str, doc='Stuff about x')
+            y = __(str)
+
+        with self.assertRaises(TypeError):
+            A("not enough")
+
+    def test_new_extra_kwargs(self):
+        class A(NamedTuple):
+            x = __(str, doc='Stuff about x')
+            y = __(str)
+
+        with self.assertRaises(TypeError):
+            A("ok", "but", this="unused")

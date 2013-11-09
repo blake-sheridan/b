@@ -1869,41 +1869,81 @@ PyDoc_STRVAR(NamedTuple__doc__,
 static PyObject *
 NamedTuple__new__(PyTypeObject *cls, PyObject *args, PyObject *kwargs)
 {
+    PyObject *self = NULL;
+
     assert(PyType_IsSubtype(cls, &NamedTupleMeta_type));
 
-    NamedTupleMeta *cls_this = (NamedTupleMeta *)cls;
+    Py_ssize_t num_fields = ((NamedTupleMeta *)cls)->num_fields;
 
-    Py_ssize_t num_fields = cls_this->num_fields;
-    Py_ssize_t num_args = PyTuple_GET_SIZE(args);
-
-    if (kwargs != NULL) {
-        PyErr_SetString(PyExc_NotImplementedError, "NamedTuple.__new__, **kwargs");
-        return NULL;
-    }
-
-    PyObject *self = cls->tp_alloc(cls, num_fields);
+    self = cls->tp_alloc(cls, num_fields);
     if (self == NULL)
         return NULL;
 
-    NamedTuple *this = (NamedTuple *)self;
+    Py_ssize_t num_args = PyTuple_GET_SIZE(args);
+    Py_ssize_t num_kwargs_unused = kwargs == NULL ? 0 : PyDict_Size(kwargs);
 
+    NamedTupleField *field;
     PyObject *value;
-    Py_ssize_t i;
+
+    Py_ssize_t i; /* Used by bail */
     for (i = 0; i < num_fields; i++) {
+        field = (NamedTupleField *)PyTuple_GET_ITEM(((NamedTupleMeta *)cls)->fields, i);
+
         if (i < num_args) {
             value = PyTuple_GET_ITEM(args, i);
-
-            /* TODO: type check */
-
-            Py_INCREF(value);
-            this->values[i] = value;
+        } else if (num_kwargs_unused) {
+            /* XXX: doesn't set exception, nor do we want it to */
+            value = PyDict_GetItem(kwargs, field->name);
+            if (value == NULL) {
+                value = field->default_;
+            } else {
+                num_kwargs_unused -= 1;
+            }
         } else {
-            PyErr_SetString(PyExc_NotImplementedError, "NamedTuple.__new__, arg defaults");
-            return NULL;
+            value = NULL;
         }
+
+        if (value == NULL) {
+            PyErr_Format(PyExc_TypeError,
+                         "%.200s() requires value for field %R",
+                         cls->tp_name,
+                         field->name);
+            goto bail;
+        }
+
+        /* TODO: type check */
+        Py_INCREF(value);
+
+        ((NamedTuple *)self)->values[i] = value;
+    }
+
+    if (i < num_args) {
+        PyErr_Format(PyExc_TypeError,
+                     "%.200s() received %d too many positional arguments",
+                     cls->tp_name,
+                     num_args - i);
+        goto bail;
+    }
+
+    if (num_kwargs_unused) {
+        PyErr_Format(PyExc_TypeError,
+                     "%.200s() received %d too many keyword arguments - %R",
+                     cls->tp_name,
+                     num_kwargs_unused,
+                     kwargs);
+        goto bail;
     }
 
     return self;
+
+  bail:
+    /* XXX: Is this correct? */
+    while (i > 0) {
+        Py_DECREF(((NamedTuple *)self)->values[--i]);
+    }
+
+    Py_XDECREF(self);
+    return NULL;
 }
 
 static PyObject *
