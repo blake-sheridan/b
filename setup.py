@@ -14,6 +14,9 @@ setup(
     ext_modules = [
         Extension(
             name = 'b._collections',
+            include_dirs = [
+                'include',
+            ],
             sources = [
                 'src/collections.c',
             ],
@@ -32,14 +35,10 @@ setup(
         ),
         Extension(
             name = 'b._types',
-            depends = [
-                'include/memoizer.h',
-            ],
             include_dirs = [
                 'include',
             ],
             sources = [
-                'src/memoizer.c',
                 'src/types.c',
             ],
         ),
