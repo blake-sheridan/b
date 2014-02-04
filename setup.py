@@ -28,6 +28,15 @@ setup(
             ],
         ),
         Extension(
+            name = 'b._grammar',
+            include_dirs = [
+                'include',
+            ],
+            sources = [
+                'src/grammar.c',
+            ],
+        ),
+        Extension(
             name = 'b._operator',
             sources = [
                 'src/operator.c',
